@@ -1,9 +1,10 @@
+import pkg from "../../../package.json";
 import type { UIManifest } from "./types";
 
 export const GUIDEBOOK_MANIFEST: UIManifest = {
 	name: "Guidebook",
 	icon: "book-open",
-	version: "1.0.0",
+	version: pkg.version,
 	navigation: [{ label: "Guidebook", path: "/", icon: "book-open" }],
 	sidebar: {
 		items: [
