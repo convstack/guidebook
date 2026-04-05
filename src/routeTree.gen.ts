@@ -14,6 +14,7 @@ import { Route as ApiSidebarTreeRouteImport } from './routes/api/sidebar-tree'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiPagesRouteImport } from './routes/api/pages'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiUploadImageRouteImport } from './routes/api/upload/image'
 import { Route as ApiPagesSlugRouteImport } from './routes/api/pages/$slug'
 import { Route as ApiPagesSlugHistoryRouteImport } from './routes/api/pages/$slug/history'
 import { Route as ApiPagesSlugActionsRouteImport } from './routes/api/pages/$slug/actions'
@@ -42,6 +43,11 @@ const ApiPagesRoute = ApiPagesRouteImport.update({
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUploadImageRoute = ApiUploadImageRouteImport.update({
+  id: '/api/upload/image',
+  path: '/api/upload/image',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPagesSlugRoute = ApiPagesSlugRouteImport.update({
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/api/search': typeof ApiSearchRoute
   '/api/sidebar-tree': typeof ApiSidebarTreeRoute
   '/api/pages/$slug': typeof ApiPagesSlugRouteWithChildren
+  '/api/upload/image': typeof ApiUploadImageRoute
   '/api/pages/$slug/actions': typeof ApiPagesSlugActionsRoute
   '/api/pages/$slug/history': typeof ApiPagesSlugHistoryRoute
   '/api/pages/$slug/revisions/$revisionId': typeof ApiPagesSlugRevisionsRevisionIdRoute
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/api/search': typeof ApiSearchRoute
   '/api/sidebar-tree': typeof ApiSidebarTreeRoute
   '/api/pages/$slug': typeof ApiPagesSlugRouteWithChildren
+  '/api/upload/image': typeof ApiUploadImageRoute
   '/api/pages/$slug/actions': typeof ApiPagesSlugActionsRoute
   '/api/pages/$slug/history': typeof ApiPagesSlugHistoryRoute
   '/api/pages/$slug/revisions/$revisionId': typeof ApiPagesSlugRevisionsRevisionIdRoute
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/api/search': typeof ApiSearchRoute
   '/api/sidebar-tree': typeof ApiSidebarTreeRoute
   '/api/pages/$slug': typeof ApiPagesSlugRouteWithChildren
+  '/api/upload/image': typeof ApiUploadImageRoute
   '/api/pages/$slug/actions': typeof ApiPagesSlugActionsRoute
   '/api/pages/$slug/history': typeof ApiPagesSlugHistoryRoute
   '/api/pages/$slug/revisions/$revisionId': typeof ApiPagesSlugRevisionsRevisionIdRoute
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/api/sidebar-tree'
     | '/api/pages/$slug'
+    | '/api/upload/image'
     | '/api/pages/$slug/actions'
     | '/api/pages/$slug/history'
     | '/api/pages/$slug/revisions/$revisionId'
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/api/sidebar-tree'
     | '/api/pages/$slug'
+    | '/api/upload/image'
     | '/api/pages/$slug/actions'
     | '/api/pages/$slug/history'
     | '/api/pages/$slug/revisions/$revisionId'
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/api/sidebar-tree'
     | '/api/pages/$slug'
+    | '/api/upload/image'
     | '/api/pages/$slug/actions'
     | '/api/pages/$slug/history'
     | '/api/pages/$slug/revisions/$revisionId'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   ApiPagesRoute: typeof ApiPagesRouteWithChildren
   ApiSearchRoute: typeof ApiSearchRoute
   ApiSidebarTreeRoute: typeof ApiSidebarTreeRoute
+  ApiUploadImageRoute: typeof ApiUploadImageRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -179,6 +192,13 @@ declare module '@tanstack/react-router' {
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/upload/image': {
+      id: '/api/upload/image'
+      path: '/api/upload/image'
+      fullPath: '/api/upload/image'
+      preLoaderRoute: typeof ApiUploadImageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/pages/$slug': {
@@ -246,6 +266,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPagesRoute: ApiPagesRouteWithChildren,
   ApiSearchRoute: ApiSearchRoute,
   ApiSidebarTreeRoute: ApiSidebarTreeRoute,
+  ApiUploadImageRoute: ApiUploadImageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
