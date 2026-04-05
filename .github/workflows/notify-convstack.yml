@@ -1,0 +1,17 @@
+name: Notify ConvStack
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  update-submodule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger convstack submodule update
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.CONVSTACK_PAT }}
+          repository: convstack/convstack
+          event-type: submodule-update
+          client-payload: '{"repo": "dashboard", "ref": "${{ github.sha }}"}'
