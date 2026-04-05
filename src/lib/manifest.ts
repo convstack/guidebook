@@ -7,16 +7,51 @@ export const GUIDEBOOK_MANIFEST: UIManifest = {
 	navigation: [{ label: "Guidebook", path: "/", icon: "book-open" }],
 	sidebar: {
 		items: [
-			{ label: "All Pages", path: "/", icon: "file-text" },
+			{ label: "Main Page", path: "/", icon: "home" },
+			{ label: "Search", path: "/search", icon: "search" },
 			{ label: "New Page", path: "/new", icon: "plus" },
 		],
+		tree: {
+			endpoint: "/api/sidebar-tree",
+		},
+		footerItems: [{ label: "All Pages", path: "/pages", icon: "list" }],
 	},
 	widgets: [],
 	pages: [
 		{
 			path: "/",
 			title: "Guidebook",
+			layout: "full-width",
+			sections: [
+				{
+					type: "markdown",
+					endpoint: "/api/pages/main-page",
+					config: {},
+				},
+			],
+		},
+		{
+			path: "/search",
+			title: "Search",
 			layout: "default",
+			showBack: true,
+			sections: [
+				{
+					type: "data-table",
+					endpoint: "/api/search",
+					config: {
+						rowLink: "/pages/:slug",
+						searchable: true,
+						readOnly: true,
+					},
+				},
+			],
+		},
+		{
+			path: "/pages",
+			title: "All Pages",
+			layout: "default",
+			showBack: true,
 			sections: [
 				{
 					type: "data-table",

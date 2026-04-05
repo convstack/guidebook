@@ -3,13 +3,25 @@ import { nanoid } from "nanoid";
 import { db } from "~/db";
 import { wikiPage } from "~/db/schema";
 import { getRequestUser, requireStaff } from "~/lib/auth";
+import { getUserDepartmentIds } from "~/lib/departments";
 import { uniqueSlug } from "~/lib/slugify";
 
 export const Route = createFileRoute("/api/pages")({
 	server: {
 		handlers: {
-			GET: async () => {
+			GET: async ({ request }: { request: Request }) => {
 				const { desc } = await import("drizzle-orm");
+				const user = getRequestUser(request);
+
+				// Filter out department-restricted pages the user can't access
+				let deptIds: Set<string> = new Set();
+				const isAdmin = user?.role === "admin";
+				if (!isAdmin && user) {
+					const auth = request.headers.get("authorization");
+					if (auth) {
+						deptIds = await getUserDepartmentIds(auth, user.id);
+					}
+				}
 
 				const rows = await db
 					.select({
@@ -17,10 +29,18 @@ export const Route = createFileRoute("/api/pages")({
 						slug: wikiPage.slug,
 						updatedBy: wikiPage.updatedBy,
 						updatedAt: wikiPage.updatedAt,
+						departmentId: wikiPage.departmentId,
 					})
 					.from(wikiPage)
 					.orderBy(desc(wikiPage.updatedAt))
 					.limit(200);
+
+				// Filter in application layer (simpler than dynamic SQL)
+				const filtered = isAdmin
+					? rows
+					: rows.filter(
+							(row) => !row.departmentId || deptIds.has(row.departmentId),
+						);
 
 				return new Response(
 					JSON.stringify({
@@ -29,13 +49,13 @@ export const Route = createFileRoute("/api/pages")({
 							{ key: "updatedBy", label: "Last Editor" },
 							{ key: "updatedAt", label: "Updated" },
 						],
-						rows: rows.map((row) => ({
+						rows: filtered.map((row) => ({
 							title: row.title,
 							slug: row.slug,
 							updatedBy: row.updatedBy,
 							updatedAt: row.updatedAt,
 						})),
-						total: rows.length,
+						total: filtered.length,
 					}),
 					{
 						status: 200,

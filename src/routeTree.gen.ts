@@ -10,43 +10,138 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiSidebarTreeRouteImport } from './routes/api/sidebar-tree'
+import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as ApiPagesRouteImport } from './routes/api/pages'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiPagesSlugRouteImport } from './routes/api/pages/$slug'
+import { Route as ApiPagesSlugHistoryRouteImport } from './routes/api/pages/$slug/history'
+import { Route as ApiPagesSlugActionsRouteImport } from './routes/api/pages/$slug/actions'
+import { Route as ApiPagesSlugRevisionsRevisionIdRouteImport } from './routes/api/pages/$slug/revisions/$revisionId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-
+const ApiSidebarTreeRoute = ApiSidebarTreeRouteImport.update({
+  id: '/api/sidebar-tree',
+  path: '/api/sidebar-tree',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSearchRoute = ApiSearchRouteImport.update({
+  id: '/api/search',
+  path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPagesRoute = ApiPagesRouteImport.update({
+  id: '/api/pages',
+  path: '/api/pages',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPagesSlugRoute = ApiPagesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ApiPagesRoute,
+} as any)
+const ApiPagesSlugHistoryRoute = ApiPagesSlugHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => ApiPagesSlugRoute,
+} as any)
+const ApiPagesSlugActionsRoute = ApiPagesSlugActionsRouteImport.update({
+  id: '/actions',
+  path: '/actions',
+  getParentRoute: () => ApiPagesSlugRoute,
+} as any)
+const ApiPagesSlugRevisionsRevisionIdRoute =
+  ApiPagesSlugRevisionsRevisionIdRouteImport.update({
+    id: '/revisions/$revisionId',
+    path: '/revisions/$revisionId',
+    getParentRoute: () => ApiPagesSlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/pages': typeof ApiPagesRouteWithChildren
+  '/api/search': typeof ApiSearchRoute
+  '/api/sidebar-tree': typeof ApiSidebarTreeRoute
+  '/api/pages/$slug': typeof ApiPagesSlugRouteWithChildren
+  '/api/pages/$slug/actions': typeof ApiPagesSlugActionsRoute
+  '/api/pages/$slug/history': typeof ApiPagesSlugHistoryRoute
+  '/api/pages/$slug/revisions/$revisionId': typeof ApiPagesSlugRevisionsRevisionIdRoute
 }
-
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/pages': typeof ApiPagesRouteWithChildren
+  '/api/search': typeof ApiSearchRoute
+  '/api/sidebar-tree': typeof ApiSidebarTreeRoute
+  '/api/pages/$slug': typeof ApiPagesSlugRouteWithChildren
+  '/api/pages/$slug/actions': typeof ApiPagesSlugActionsRoute
+  '/api/pages/$slug/history': typeof ApiPagesSlugHistoryRoute
+  '/api/pages/$slug/revisions/$revisionId': typeof ApiPagesSlugRevisionsRevisionIdRoute
 }
-
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/pages': typeof ApiPagesRouteWithChildren
+  '/api/search': typeof ApiSearchRoute
+  '/api/sidebar-tree': typeof ApiSidebarTreeRoute
+  '/api/pages/$slug': typeof ApiPagesSlugRouteWithChildren
+  '/api/pages/$slug/actions': typeof ApiPagesSlugActionsRoute
+  '/api/pages/$slug/history': typeof ApiPagesSlugHistoryRoute
+  '/api/pages/$slug/revisions/$revisionId': typeof ApiPagesSlugRevisionsRevisionIdRoute
 }
-
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/health'
+  fullPaths:
+    | '/'
+    | '/api/health'
+    | '/api/pages'
+    | '/api/search'
+    | '/api/sidebar-tree'
+    | '/api/pages/$slug'
+    | '/api/pages/$slug/actions'
+    | '/api/pages/$slug/history'
+    | '/api/pages/$slug/revisions/$revisionId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/health'
-  id: '__root__' | '/' | '/api/health'
+  to:
+    | '/'
+    | '/api/health'
+    | '/api/pages'
+    | '/api/search'
+    | '/api/sidebar-tree'
+    | '/api/pages/$slug'
+    | '/api/pages/$slug/actions'
+    | '/api/pages/$slug/history'
+    | '/api/pages/$slug/revisions/$revisionId'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/health'
+    | '/api/pages'
+    | '/api/search'
+    | '/api/sidebar-tree'
+    | '/api/pages/$slug'
+    | '/api/pages/$slug/actions'
+    | '/api/pages/$slug/history'
+    | '/api/pages/$slug/revisions/$revisionId'
   fileRoutesById: FileRoutesById
+}
+export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
+  ApiHealthRoute: typeof ApiHealthRoute
+  ApiPagesRoute: typeof ApiPagesRouteWithChildren
+  ApiSearchRoute: typeof ApiSearchRoute
+  ApiSidebarTreeRoute: typeof ApiSidebarTreeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -58,6 +153,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/sidebar-tree': {
+      id: '/api/sidebar-tree'
+      path: '/api/sidebar-tree'
+      fullPath: '/api/sidebar-tree'
+      preLoaderRoute: typeof ApiSidebarTreeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/search': {
+      id: '/api/search'
+      path: '/api/search'
+      fullPath: '/api/search'
+      preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/pages': {
+      id: '/api/pages'
+      path: '/api/pages'
+      fullPath: '/api/pages'
+      preLoaderRoute: typeof ApiPagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/health': {
       id: '/api/health'
       path: '/api/health'
@@ -65,19 +181,72 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/pages/$slug': {
+      id: '/api/pages/$slug'
+      path: '/$slug'
+      fullPath: '/api/pages/$slug'
+      preLoaderRoute: typeof ApiPagesSlugRouteImport
+      parentRoute: typeof ApiPagesRoute
+    }
+    '/api/pages/$slug/history': {
+      id: '/api/pages/$slug/history'
+      path: '/history'
+      fullPath: '/api/pages/$slug/history'
+      preLoaderRoute: typeof ApiPagesSlugHistoryRouteImport
+      parentRoute: typeof ApiPagesSlugRoute
+    }
+    '/api/pages/$slug/actions': {
+      id: '/api/pages/$slug/actions'
+      path: '/actions'
+      fullPath: '/api/pages/$slug/actions'
+      preLoaderRoute: typeof ApiPagesSlugActionsRouteImport
+      parentRoute: typeof ApiPagesSlugRoute
+    }
+    '/api/pages/$slug/revisions/$revisionId': {
+      id: '/api/pages/$slug/revisions/$revisionId'
+      path: '/revisions/$revisionId'
+      fullPath: '/api/pages/$slug/revisions/$revisionId'
+      preLoaderRoute: typeof ApiPagesSlugRevisionsRevisionIdRouteImport
+      parentRoute: typeof ApiPagesSlugRoute
+    }
   }
 }
 
-interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  ApiHealthRoute: typeof ApiHealthRoute
+interface ApiPagesSlugRouteChildren {
+  ApiPagesSlugActionsRoute: typeof ApiPagesSlugActionsRoute
+  ApiPagesSlugHistoryRoute: typeof ApiPagesSlugHistoryRoute
+  ApiPagesSlugRevisionsRevisionIdRoute: typeof ApiPagesSlugRevisionsRevisionIdRoute
 }
+
+const ApiPagesSlugRouteChildren: ApiPagesSlugRouteChildren = {
+  ApiPagesSlugActionsRoute: ApiPagesSlugActionsRoute,
+  ApiPagesSlugHistoryRoute: ApiPagesSlugHistoryRoute,
+  ApiPagesSlugRevisionsRevisionIdRoute: ApiPagesSlugRevisionsRevisionIdRoute,
+}
+
+const ApiPagesSlugRouteWithChildren = ApiPagesSlugRoute._addFileChildren(
+  ApiPagesSlugRouteChildren,
+)
+
+interface ApiPagesRouteChildren {
+  ApiPagesSlugRoute: typeof ApiPagesSlugRouteWithChildren
+}
+
+const ApiPagesRouteChildren: ApiPagesRouteChildren = {
+  ApiPagesSlugRoute: ApiPagesSlugRouteWithChildren,
+}
+
+const ApiPagesRouteWithChildren = ApiPagesRoute._addFileChildren(
+  ApiPagesRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiPagesRoute: ApiPagesRouteWithChildren,
+  ApiSearchRoute: ApiSearchRoute,
+  ApiSidebarTreeRoute: ApiSidebarTreeRoute,
 }
-
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()

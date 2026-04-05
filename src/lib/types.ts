@@ -10,8 +10,10 @@ export interface NavigationItem {
 
 export interface ServiceSidebar {
 	items?: NavigationItem[];
-	type?: "tree";
-	endpoint?: string;
+	tree?: {
+		endpoint: string;
+	};
+	footerItems?: NavigationItem[];
 }
 
 export interface UIManifest {

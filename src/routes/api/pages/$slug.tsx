@@ -3,7 +3,10 @@ import { nanoid } from "nanoid";
 import { db } from "~/db";
 import { wikiPage, wikiRevision } from "~/db/schema";
 import { getRequestUser, requireStaff } from "~/lib/auth";
+import { checkDepartmentAccess } from "~/lib/departments";
+import { resolveUserName } from "~/lib/users";
 import { resolveWikiLinks } from "~/lib/wiki-links";
+import { ensureMainPage } from "~/server/services/init";
 
 export const Route = createFileRoute("/api/pages/$slug")({
 	server: {
@@ -18,6 +21,11 @@ export const Route = createFileRoute("/api/pages/$slug")({
 				const { eq } = await import("drizzle-orm");
 				const user = getRequestUser(request);
 
+				// Auto-create main page on first access if it doesn't exist
+				if (params.slug === "main-page") {
+					await ensureMainPage();
+				}
+
 				const [page] = await db
 					.select()
 					.from(wikiPage)
@@ -31,6 +39,14 @@ export const Route = createFileRoute("/api/pages/$slug")({
 					});
 				}
 
+				// Department-restricted pages require membership
+				const deptError = await checkDepartmentAccess(
+					request,
+					page.departmentId,
+					user?.role ?? "user",
+				);
+				if (deptError) return deptError;
+
 				const resolvedContent = await resolveWikiLinks(
 					page.content,
 					"guidebook",
@@ -39,11 +55,13 @@ export const Route = createFileRoute("/api/pages/$slug")({
 				const isStaffOrAdmin =
 					user && (user.role === "staff" || user.role === "admin");
 
+				const editorName = await resolveUserName(page.updatedBy);
+
 				const response: Record<string, unknown> = {
 					title: page.title,
 					content: resolvedContent,
 					metadata: {
-						lastEditedBy: page.updatedBy,
+						lastEditedBy: editorName,
 						lastEditedAt: page.updatedAt,
 					},
 				};
@@ -93,7 +111,18 @@ export const Route = createFileRoute("/api/pages/$slug")({
 					});
 				}
 
-				let body: { title?: string; content?: string };
+				const deptError = await checkDepartmentAccess(
+					request,
+					page.departmentId,
+					user.role,
+				);
+				if (deptError) return deptError;
+
+				let body: {
+					title?: string;
+					content?: string;
+					editSummary?: string;
+				};
 				try {
 					body = await request.json();
 				} catch {
@@ -103,7 +132,7 @@ export const Route = createFileRoute("/api/pages/$slug")({
 					});
 				}
 
-				const { title, content } = body;
+				const { title, content, editSummary } = body;
 
 				// Save current version as a revision before updating
 				await db.insert(wikiRevision).values({
@@ -112,7 +141,7 @@ export const Route = createFileRoute("/api/pages/$slug")({
 					title: page.title,
 					content: page.content,
 					editedBy: user.id,
-					editSummary: null,
+					editSummary: editSummary?.trim() || null,
 					createdAt: new Date(),
 				});
 

@@ -42,6 +42,10 @@ Bun.serve({
 
 console.log(`Guidebook server listening on http://localhost:${port}`);
 
+import("./src/server/services/init.ts")
+	.then(({ ensureMainPage }) => ensureMainPage())
+	.catch((err) => console.warn("Failed to create main page:", err));
+
 import("./src/server/services/self-register.ts")
 	.then(({ registerGuidebook }) => registerGuidebook())
 	.catch((err) => console.warn("Failed to register:", err));

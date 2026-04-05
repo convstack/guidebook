@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getRequestUser } from "~/lib/auth";
+import { resolveUserNames } from "~/lib/users";
 
 export const Route = createFileRoute("/api/pages/$slug/history")({
 	server: {
@@ -49,6 +50,10 @@ export const Route = createFileRoute("/api/pages/$slug/history")({
 					.orderBy(desc(wikiRevision.createdAt))
 					.limit(100);
 
+				// Resolve user IDs to display names
+				const userIds = revisions.map((r) => r.editedBy);
+				const nameMap = await resolveUserNames(userIds);
+
 				return new Response(
 					JSON.stringify({
 						columns: [
@@ -59,6 +64,7 @@ export const Route = createFileRoute("/api/pages/$slug/history")({
 						],
 						rows: revisions.map((r) => ({
 							...r,
+							editedBy: nameMap.get(r.editedBy) || r.editedBy,
 							editSummary: r.editSummary || "—",
 							createdAt: r.createdAt
 								? new Date(r.createdAt).toLocaleString()
