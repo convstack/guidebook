@@ -37,12 +37,10 @@ export const GUIDEBOOK_MANIFEST: UIManifest = {
 			showBack: true,
 			sections: [
 				{
-					type: "data-table",
+					type: "search",
 					endpoint: "/api/search",
 					config: {
 						rowLink: "/pages/:slug",
-						searchable: true,
-						readOnly: true,
 					},
 				},
 			],

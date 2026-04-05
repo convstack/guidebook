@@ -5,6 +5,7 @@ import { wikiPage } from "~/db/schema";
 import { getRequestUser, requireStaff } from "~/lib/auth";
 import { getUserDepartmentIds } from "~/lib/departments";
 import { uniqueSlug } from "~/lib/slugify";
+import { resolveUserNames } from "~/lib/users";
 
 export const Route = createFileRoute("/api/pages")({
 	server: {
@@ -42,6 +43,9 @@ export const Route = createFileRoute("/api/pages")({
 							(row) => !row.departmentId || deptIds.has(row.departmentId),
 						);
 
+				const userIds = filtered.map((r) => r.updatedBy);
+				const nameMap = await resolveUserNames(userIds);
+
 				return new Response(
 					JSON.stringify({
 						columns: [
@@ -52,7 +56,7 @@ export const Route = createFileRoute("/api/pages")({
 						rows: filtered.map((row) => ({
 							title: row.title,
 							slug: row.slug,
-							updatedBy: row.updatedBy,
+							updatedBy: nameMap.get(row.updatedBy) || row.updatedBy,
 							updatedAt: row.updatedAt,
 						})),
 						total: filtered.length,
