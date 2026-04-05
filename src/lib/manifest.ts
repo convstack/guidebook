@@ -1,10 +1,15 @@
-import pkg from "../../../package.json";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { UIManifest } from "./types";
+
+const { version } = JSON.parse(
+	readFileSync(join(process.cwd(), "package.json"), "utf-8"),
+);
 
 export const GUIDEBOOK_MANIFEST: UIManifest = {
 	name: "Guidebook",
 	icon: "book-open",
-	version: pkg.version,
+	version,
 	navigation: [{ label: "Guidebook", path: "/", icon: "book-open" }],
 	sidebar: {
 		items: [
