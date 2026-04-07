@@ -8,8 +8,8 @@
  * and methods from the handler declarations. No manual annotations needed.
  */
 
-import { readdirSyncrrreadFileSync, statSync, writeFileSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { join, relative } from "node:path";
 
 const ROUTES_DIR = join(process.cwd(), "src", "routes", "api");
 const OUTPUT = join(process.cwd(), "public", "openapi.json");
@@ -49,12 +49,10 @@ function filePathToApiPath(filePath: string): string {
 		.replace(/\\/g, "/")
 		.replace(/\.tsx?$/, "");
 
-	// Remove index suffix
 	if (rel.endsWith("/index")) {
 		rel = rel.slice(0, -6);
 	}
 
-	// Convert $param to {param}
 	rel = rel.replace(/\$([a-zA-Z]+)/g, "{$1}");
 
 	return `/api/${rel}`;
@@ -63,7 +61,6 @@ function filePathToApiPath(filePath: string): string {
 function extractMethods(content: string): string[] {
 	const found: string[] = [];
 	for (const method of METHODS) {
-		// Match patterns like "GET:" or "GET :" in handler objects
 		if (new RegExp(`${method}\\s*:`).test(content)) {
 			found.push(method.toLowerCase());
 		}
@@ -78,7 +75,6 @@ function extractParams(apiPath: string): string[] {
 
 function deriveTag(apiPath: string): string {
 	const parts = apiPath.replace("/api/", "").split("/");
-	// Use first meaningful segment as tag
 	if (parts[0] === "my") return `my/${parts[1] || ""}`.replace(/\/$/, "");
 	if (parts[0] === "webhooks") return "webhooks";
 	return parts[0] || "general";
@@ -154,9 +150,5 @@ try {
 const spec = generateSpec();
 writeFileSync(OUTPUT, JSON.stringify(spec, null, 2));
 console.log(
-	`Generated OpenAPI spec: ${Object.keys((spec as { paths: object }).paths).length} paths → public/openapi.json`,
-);
-	`Generated OpenAPI spec: ${Object.keys((spec as { paths: object }).paths).length} paths → public/openapi.json`,
-);
 	`Generated OpenAPI spec: ${Object.keys((spec as { paths: object }).paths).length} paths → public/openapi.json`,
 );
