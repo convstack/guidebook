@@ -13,6 +13,9 @@ interface TreeNode {
 export const Route = createFileRoute("/api/sidebar-tree")({
 	server: {
 		handlers: {
+			/** @openapi
+			 * summary: Get hierarchical page tree for sidebar navigation
+			 */
 			GET: async ({ request }: { request: Request }) => {
 				const { asc } = await import("drizzle-orm");
 				const user = getRequestUser(request);

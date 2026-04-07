@@ -11,6 +11,16 @@ import { ensureMainPage } from "~/server/services/init";
 export const Route = createFileRoute("/api/pages/$slug")({
 	server: {
 		handlers: {
+			/** @openapi
+			 * summary: Get a wiki page by slug
+			 * response: 200
+			 *   title: string
+			 *   content: string
+			 *   metadata: object
+			 *   actions: object
+			 * error: 404 Page not found
+			 * error: 403 Department access denied
+			 */
 			GET: async ({
 				request,
 				params,
@@ -79,6 +89,21 @@ export const Route = createFileRoute("/api/pages/$slug")({
 				});
 			},
 
+			/** @openapi
+			 * summary: Update a wiki page
+			 * description: Creates a revision of the previous content before updating.
+			 * auth: staff
+			 * body:
+			 *   title: string - New page title
+			 *   content: string - New markdown content
+			 *   editSummary: string - Short description of the change
+			 * response: 200
+			 *   success: boolean
+			 * error: 400 Invalid JSON
+			 * error: 401 Unauthorized
+			 * error: 403 Staff access required
+			 * error: 404 Page not found
+			 */
 			PUT: async ({
 				request,
 				params,
@@ -207,6 +232,16 @@ export const Route = createFileRoute("/api/pages/$slug")({
 				});
 			},
 
+			/** @openapi
+			 * summary: Delete a wiki page
+			 * auth: admin
+			 * response: 200
+			 *   success: boolean
+			 *   redirect: string
+			 * error: 401 Unauthorized
+			 * error: 403 Admin access required
+			 * error: 404 Page not found
+			 */
 			DELETE: async ({
 				request,
 				params,

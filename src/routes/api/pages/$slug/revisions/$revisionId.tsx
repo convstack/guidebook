@@ -5,6 +5,18 @@ import { resolveUserName } from "~/lib/users";
 export const Route = createFileRoute("/api/pages/$slug/revisions/$revisionId")({
 	server: {
 		handlers: {
+			/** @openapi
+			 * summary: Get a specific revision with diff
+			 * description: Returns revision content and line-by-line diff against current version.
+			 * auth: user
+			 * response: 200
+			 *   title: string
+			 *   content: string
+			 *   metadata: object
+			 *   diff: array
+			 * error: 401 Unauthorized
+			 * error: 404 Revision not found
+			 */
 			GET: async ({
 				request,
 				params,

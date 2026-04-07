@@ -10,6 +10,13 @@ import { resolveUserNames } from "~/lib/users";
 export const Route = createFileRoute("/api/pages")({
 	server: {
 		handlers: {
+			/** @openapi
+			 * summary: List all wiki pages
+			 * response: 200
+			 *   columns: array
+			 *   rows: array
+			 *   total: integer
+			 */
 			GET: async ({ request }: { request: Request }) => {
 				const { desc } = await import("drizzle-orm");
 				const user = getRequestUser(request);
@@ -68,6 +75,20 @@ export const Route = createFileRoute("/api/pages")({
 				);
 			},
 
+			/** @openapi
+			 * summary: Create a new wiki page
+			 * auth: staff
+			 * body:
+			 *   title: string (required) - Page title
+			 *   content: string - Markdown content
+			 *   parentSlug: string - Parent page slug for hierarchy
+			 * response: 201
+			 *   success: boolean
+			 *   redirect: string
+			 * error: 400 Validation error
+			 * error: 401 Unauthorized
+			 * error: 403 Staff access required
+			 */
 			POST: async ({ request }: { request: Request }) => {
 				const user = getRequestUser(request);
 				if (!user) {

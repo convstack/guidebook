@@ -5,6 +5,16 @@ import { resolveUserNames } from "~/lib/users";
 export const Route = createFileRoute("/api/pages/$slug/history")({
 	server: {
 		handlers: {
+			/** @openapi
+			 * summary: Get revision history for a page
+			 * auth: user
+			 * response: 200
+			 *   columns: array
+			 *   rows: array
+			 *   total: integer
+			 * error: 401 Unauthorized
+			 * error: 404 Page not found
+			 */
 			GET: async ({
 				request,
 				params,

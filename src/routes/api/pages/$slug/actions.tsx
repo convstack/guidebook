@@ -4,6 +4,12 @@ import { getRequestUser } from "~/lib/auth";
 export const Route = createFileRoute("/api/pages/$slug/actions")({
 	server: {
 		handlers: {
+			/** @openapi
+			 * summary: Get available actions for a page
+			 * description: Returns role-aware actions (edit, history, delete).
+			 * response: 200
+			 *   actions: array
+			 */
 			GET: async ({
 				request,
 				params,

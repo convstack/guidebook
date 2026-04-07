@@ -58,6 +58,14 @@ function extractMatches(
 export const Route = createFileRoute("/api/search")({
 	server: {
 		handlers: {
+			/** @openapi
+			 * summary: Full-text search across all pages
+			 * description: Uses PostgreSQL tsvector + ILIKE. Returns up to 3 contextual snippets per page.
+			 * query:
+			 *   q: string (required) - Search query
+			 * response: 200
+			 *   results: array
+			 */
 			GET: async ({ request }: { request: Request }) => {
 				const { sql, desc } = await import("drizzle-orm");
 				const user = getRequestUser(request);

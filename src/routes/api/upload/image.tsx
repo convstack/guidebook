@@ -14,6 +14,20 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 export const Route = createFileRoute("/api/upload/image")({
 	server: {
 		handlers: {
+			/** @openapi
+			 * summary: Upload an image for wiki pages
+			 * description: Accepts JPEG, PNG, GIF, WebP, SVG up to 5MB.
+			 * auth: staff
+			 * contentType: multipart/form-data
+			 * body:
+			 *   file: binary (required) - Image file
+			 * response: 200
+			 *   url: string
+			 * error: 400 Invalid file type or size
+			 * error: 401 Unauthorized
+			 * error: 403 Staff access required
+			 * error: 501 S3 uploads not configured
+			 */
 			POST: async ({ request }: { request: Request }) => {
 				const user = getRequestUser(request);
 				if (!user) {
