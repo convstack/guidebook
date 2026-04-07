@@ -9,7 +9,7 @@ function IndexPage() {
 		<div className="flex min-h-screen items-center justify-center">
 			<div className="space-y-2 text-center">
 				<h1 className="text-2xl font-bold">Guidebook</h1>
-				<p className="text-sm">Wiki coming soon.</p>
+				<p className="text-sm">Guidebook service is running.</p>
 			</div>
 		</div>
 	);
