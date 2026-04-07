@@ -12,7 +12,8 @@
 		"db:push": "drizzle-kit push",
 		"typecheck": "tsc --noEmit",
 		"lint": "biome check .",
-		"lint:fix": "biome check --write ."
+		"lint:fix": "biome check --write .",
+		"openapi:generate": "bun run scripts/generate-openapi.ts"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.1024.0",

@@ -1,0 +1,240 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "@convention/guidebook",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "get_api_health",
+        "tags": [
+          "health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/api/openapi": {
+      "get": {
+        "operationId": "get_api_openapi",
+        "tags": [
+          "openapi"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/api/pages/{slug}/actions": {
+      "get": {
+        "operationId": "get_api_pages_slug_actions",
+        "tags": [
+          "pages"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/pages/{slug}/history": {
+      "get": {
+        "operationId": "get_api_pages_slug_history",
+        "tags": [
+          "pages"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/pages/{slug}/revisions/{revisionId}": {
+      "get": {
+        "operationId": "get_api_pages_slug_revisions_revisionId",
+        "tags": [
+          "pages"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "revisionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/pages/{slug}": {
+      "get": {
+        "operationId": "get_api_pages_slug",
+        "tags": [
+          "pages"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "operationId": "put_api_pages_slug",
+        "tags": [
+          "pages"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "delete_api_pages_slug",
+        "tags": [
+          "pages"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/pages": {
+      "get": {
+        "operationId": "get_api_pages",
+        "tags": [
+          "pages"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_api_pages",
+        "tags": [
+          "pages"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/api/search": {
+      "get": {
+        "operationId": "get_api_search",
+        "tags": [
+          "search"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/api/sidebar-tree": {
+      "get": {
+        "operationId": "get_api_sidebar_tree",
+        "tags": [
+          "sidebar-tree"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/api/upload/image": {
+      "post": {
+        "operationId": "post_api_upload_image",
+        "tags": [
+          "upload"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    }
+  }
+}

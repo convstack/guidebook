@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSidebarTreeRouteImport } from './routes/api/sidebar-tree'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiPagesRouteImport } from './routes/api/pages'
+import { Route as ApiOpenapiRouteImport } from './routes/api/openapi'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiUploadImageRouteImport } from './routes/api/upload/image'
 import { Route as ApiPagesSlugRouteImport } from './routes/api/pages/$slug'
@@ -38,6 +39,11 @@ const ApiSearchRoute = ApiSearchRouteImport.update({
 const ApiPagesRoute = ApiPagesRouteImport.update({
   id: '/api/pages',
   path: '/api/pages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOpenapiRoute = ApiOpenapiRouteImport.update({
+  id: '/api/openapi',
+  path: '/api/openapi',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
@@ -75,6 +81,7 @@ const ApiPagesSlugRevisionsRevisionIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/openapi': typeof ApiOpenapiRoute
   '/api/pages': typeof ApiPagesRouteWithChildren
   '/api/search': typeof ApiSearchRoute
   '/api/sidebar-tree': typeof ApiSidebarTreeRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/openapi': typeof ApiOpenapiRoute
   '/api/pages': typeof ApiPagesRouteWithChildren
   '/api/search': typeof ApiSearchRoute
   '/api/sidebar-tree': typeof ApiSidebarTreeRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/openapi': typeof ApiOpenapiRoute
   '/api/pages': typeof ApiPagesRouteWithChildren
   '/api/search': typeof ApiSearchRoute
   '/api/sidebar-tree': typeof ApiSidebarTreeRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/api/health'
+    | '/api/openapi'
     | '/api/pages'
     | '/api/search'
     | '/api/sidebar-tree'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/api/health'
+    | '/api/openapi'
     | '/api/pages'
     | '/api/search'
     | '/api/sidebar-tree'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/api/health'
+    | '/api/openapi'
     | '/api/pages'
     | '/api/search'
     | '/api/sidebar-tree'
@@ -151,6 +163,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiOpenapiRoute: typeof ApiOpenapiRoute
   ApiPagesRoute: typeof ApiPagesRouteWithChildren
   ApiSearchRoute: typeof ApiSearchRoute
   ApiSidebarTreeRoute: typeof ApiSidebarTreeRoute
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       path: '/api/pages'
       fullPath: '/api/pages'
       preLoaderRoute: typeof ApiPagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/openapi': {
+      id: '/api/openapi'
+      path: '/api/openapi'
+      fullPath: '/api/openapi'
+      preLoaderRoute: typeof ApiOpenapiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/health': {
@@ -263,6 +283,7 @@ const ApiPagesRouteWithChildren = ApiPagesRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiOpenapiRoute: ApiOpenapiRoute,
   ApiPagesRoute: ApiPagesRouteWithChildren,
   ApiSearchRoute: ApiSearchRoute,
   ApiSidebarTreeRoute: ApiSidebarTreeRoute,
