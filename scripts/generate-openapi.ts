@@ -22,7 +22,7 @@
  * Usage: bun run scripts/generate-openapi.ts
  */
 
-import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const ROUTES_DIR = join(process.cwd(), "src", "routes", "api");
@@ -68,8 +68,14 @@ interface ParsedAnnotation {
 	summary?: string;
 	description?: string;
 	auth?: string;
-	body: Record<string, { type: string; required: boolean; description: string }>;
-	query: Record<string, { type: string; required: boolean; description: string }>;
+	body: Record<
+		string,
+		{ type: string; required: boolean; description: string }
+	>;
+	query: Record<
+		string,
+		{ type: string; required: boolean; description: string }
+	>;
 	response: { status: number; fields: Record<string, string> };
 	errors: Array<{ status: number; description: string }>;
 	contentType?: string;
@@ -119,15 +125,23 @@ function parseAnnotations(content: string): Map<string, ParsedAnnotation> {
 				section = "query";
 			} else if (line.startsWith("response:")) {
 				const statusStr = line.slice(9).trim();
-				if (statusStr) annotation.response.status = Number.parseInt(statusStr);
+				if (statusStr)
+					annotation.response.status = Number.parseInt(statusStr, 10);
 				section = "response";
 			} else if (line.startsWith("error:")) {
 				const rest = line.slice(6).trim();
 				const spaceIdx = rest.indexOf(" ");
-				const status = Number.parseInt(rest.slice(0, spaceIdx > 0 ? spaceIdx : undefined));
+				const status = Number.parseInt(
+					rest.slice(0, spaceIdx > 0 ? spaceIdx : undefined),
+					10,
+				);
 				const desc = spaceIdx > 0 ? rest.slice(spaceIdx + 1) : "";
 				annotation.errors.push({ status, description: desc });
-			} else if (section === "body" || section === "query" || section === "response") {
+			} else if (
+				section === "body" ||
+				section === "query" ||
+				section === "response"
+			) {
 				// Parse field line: "fieldName: type (required) - description"
 				const fieldMatch = line.match(
 					/^(\w+):\s*(\S+)(?:\s*\((\w+)\))?\s*(?:-\s*(.*))?$/,
@@ -210,7 +224,10 @@ function buildSpec() {
 			const ann = annotations.get(m);
 
 			const operation: Record<string, unknown> = {
-				operationId: `${m}_${apiPath.replace(/[/{}-]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "")}`,
+				operationId: `${m}_${apiPath
+					.replace(/[/{}-]/g, "_")
+					.replace(/_+/g, "_")
+					.replace(/^_|_$/g, "")}`,
 				tags: [tag],
 			};
 
