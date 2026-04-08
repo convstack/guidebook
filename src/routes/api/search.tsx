@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { db } from "~/db";
 import { wikiPage } from "~/db/schema";
-import { getRequestUser } from "~/lib/auth";
-import { getUserDepartmentIds } from "~/lib/departments";
+import { getAccessiblePageIds } from "~/lib/page-permissions";
 import { resolveUserNames } from "~/lib/users";
 
 interface SearchMatch {
@@ -68,7 +67,6 @@ export const Route = createFileRoute("/api/search")({
 			 */
 			GET: async ({ request }: { request: Request }) => {
 				const { sql, desc } = await import("drizzle-orm");
-				const user = getRequestUser(request);
 
 				const url = new URL(request.url);
 				const q = url.searchParams.get("q")?.trim();
@@ -80,26 +78,19 @@ export const Route = createFileRoute("/api/search")({
 					});
 				}
 
-				// Resolve department memberships for filtering
-				const isAdmin = user?.role === "admin";
-				let deptIds: Set<string> = new Set();
-				if (!isAdmin && user) {
-					const auth = request.headers.get("authorization");
-					if (auth) {
-						deptIds = await getUserDepartmentIds(auth, user.id);
-					}
-				}
+				// Get the set of page IDs this user can access (null = no filtering needed)
+				const accessibleIds = await getAccessiblePageIds(request);
 
 				const ilike = (term: string) => `%${term}%`;
 
 				const rows = await db
 					.select({
+						id: wikiPage.id,
 						title: wikiPage.title,
 						slug: wikiPage.slug,
 						content: wikiPage.content,
 						updatedBy: wikiPage.updatedBy,
 						updatedAt: wikiPage.updatedAt,
-						departmentId: wikiPage.departmentId,
 						rank: sql<number>`ts_rank(
 							to_tsvector('english', ${wikiPage.title} || ' ' || ${wikiPage.content}),
 							plainto_tsquery('english', ${q})
@@ -117,11 +108,9 @@ export const Route = createFileRoute("/api/search")({
 					.orderBy(desc(sql`rank`))
 					.limit(30);
 
-				const filtered = isAdmin
-					? rows
-					: rows.filter(
-							(row) => !row.departmentId || deptIds.has(row.departmentId),
-						);
+				const filtered = accessibleIds
+					? rows.filter((row) => accessibleIds.has(row.id))
+					: rows;
 
 				const userIds = filtered.map((r) => r.updatedBy);
 				const nameMap = await resolveUserNames(userIds);

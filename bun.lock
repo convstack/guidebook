@@ -5,6 +5,7 @@
     "": {
       "name": "@convention/guidebook",
       "dependencies": {
+        "@convstack/service-sdk": "../service-sdk",
         "@aws-sdk/client-s3": "^3.1024.0",
         "@tanstack/react-router": "^1.168.2",
         "@tanstack/react-start": "^1.167.3",
@@ -203,6 +204,8 @@
     "@biomejs/cli-win32-arm64": ["@biomejs/cli-win32-arm64@2.4.10", "", { "os": "win32", "cpu": "arm64" }, "sha512-umwQU6qPzH+ISTf/eHyJ/QoQnJs3V9Vpjz2OjZXe9MVBZ7prgGafMy7yYeRGnlmDAn87AKTF3Q6weLoMGpeqdQ=="],
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.4.10", "", { "os": "win32", "cpu": "x64" }, "sha512-aW/JU5GuyH4uxMrNYpoC2kjaHlyJGLgIa3XkhPEZI0uKhZhJZU8BuEyJmvgzSPQNGozBwWjC972RaNdcJ9KyJg=="],
+
+    "@convstack/service-sdk": ["@convstack/service-sdk@file:../service-sdk", { "devDependencies": { "@biomejs/biome": "^2.4.8", "@types/bun": "^1.3.11", "@types/node": "^25.5.0", "typescript": "^6.0.2", "vite": "^8.0.1" } }],
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.11.0", "", {}, "sha512-hD3pekGiPg0WPCCGAZmusBBJsDqGUR66Y452YgQsZOnkdQ7ViEPKuyP4huUGEZQefp8g34RRodXYmJ2TbCH+tg=="],
 

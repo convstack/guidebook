@@ -51,7 +51,7 @@
           "pages"
         ],
         "summary": "Get available actions for a page",
-        "description": "Returns role-aware actions (edit, history, delete).",
+        "description": "Returns permission-aware actions (edit, history, delete, permissions).",
         "parameters": [
           {
             "name": "slug",
@@ -122,6 +122,291 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Page not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pages/{slug}/permissions/{id}": {
+      "delete": {
+        "operationId": "delete_api_pages_slug_permissions_id",
+        "tags": [
+          "pages"
+        ],
+        "summary": "Remove a page permission entry",
+        "description": "Requires admin access to the target page.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pages/{slug}/permissions/new": {
+      "get": {
+        "operationId": "get_api_pages_slug_permissions_new",
+        "tags": [
+          "pages"
+        ],
+        "summary": "Get dynamic form fields for adding a page permission",
+        "description": "Returns department options. Requires admin access to the page.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "fields": {
+                      "type": "array"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pages/{slug}/permissions": {
+      "get": {
+        "operationId": "get_api_pages_slug_permissions",
+        "tags": [
+          "pages"
+        ],
+        "summary": "Get page permission entries",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "permissions": {
+                      "type": "array"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Page not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_api_pages_slug_permissions",
+        "tags": [
+          "pages"
+        ],
+        "summary": "Add a permission entry to a page",
+        "description": "Requires admin access to the target page (direct, inherited, or creator bootstrap).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "departmentId": {
+                    "type": "string",
+                    "description": "Department to grant access"
+                  },
+                  "access": {
+                    "type": "string",
+                    "description": "Access level (read, write, admin)"
+                  }
+                },
+                "required": [
+                  "departmentId",
+                  "access"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin access required",
             "content": {
               "application/json": {
                 "schema": {
@@ -703,7 +988,18 @@
           "upload"
         ],
         "summary": "Upload an image for wiki pages",
-        "description": "Accepts JPEG, PNG, GIF, WebP, SVG up to 5MB.",
+        "description": "|",
+        "parameters": [
+          {
+            "name": "pageSlug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Page slug the upload is intended for"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -754,23 +1050,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
           "403": {
-            "description": "Staff access required",
+            "description": "Write access required",
             "content": {
               "application/json": {
                 "schema": {

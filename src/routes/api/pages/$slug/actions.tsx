@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getRequestUser } from "~/lib/auth";
+import { checkPageAccess } from "~/lib/page-permissions";
 
 export const Route = createFileRoute("/api/pages/$slug/actions")({
 	server: {
 		handlers: {
 			/** @openapi
 			 * summary: Get available actions for a page
-			 * description: Returns role-aware actions (edit, history, delete).
+			 * description: Returns permission-aware actions (edit, history, delete, permissions).
 			 * response: 200
 			 *   actions: array
 			 */
@@ -17,17 +17,7 @@ export const Route = createFileRoute("/api/pages/$slug/actions")({
 				request: Request;
 				params: { slug: string };
 			}) => {
-				const user = getRequestUser(request);
-
-				if (!user) {
-					return new Response(JSON.stringify({ actions: [] }), {
-						status: 200,
-						headers: { "Content-Type": "application/json" },
-					});
-				}
-
-				const isStaff = user.role === "staff" || user.role === "admin";
-				const isAdmin = user.role === "admin";
+				const access = await checkPageAccess(request, params.slug);
 
 				const actions: Array<{
 					label: string;
@@ -37,7 +27,7 @@ export const Route = createFileRoute("/api/pages/$slug/actions")({
 					redirect?: string;
 				}> = [];
 
-				if (isStaff) {
+				if (access.canWrite) {
 					actions.push(
 						{
 							label: "Edit",
@@ -50,7 +40,11 @@ export const Route = createFileRoute("/api/pages/$slug/actions")({
 					);
 				}
 
-				if (isAdmin) {
+				if (access.canAdmin) {
+					actions.push({
+						label: "Permissions",
+						href: `/pages/${params.slug}/permissions`,
+					});
 					actions.push({
 						label: "Delete",
 						danger: true,

@@ -147,6 +147,35 @@ export const GUIDEBOOK_MANIFEST: UIManifest = {
 				},
 			],
 		},
+		{
+			path: "/pages/:slug/permissions",
+			title: "Page Permissions",
+			layout: "default",
+			showBack: true,
+			sections: [
+				{
+					type: "data-table",
+					endpoint: "/api/pages/:slug/permissions",
+					config: {
+						title: "Permission Entries",
+					},
+				},
+				{
+					type: "form",
+					endpoint: "/api/pages/:slug/permissions/new",
+					config: {
+						title: "Add Permission",
+						submitEndpoint: "/api/pages/:slug/permissions",
+						submitLabel: "Add",
+						method: "POST",
+					},
+				},
+			],
+		},
 	],
-	permissions: [],
+	permissions: [
+		"guidebook:pages:read",
+		"guidebook:pages:write",
+		"guidebook:admin",
+	],
 };

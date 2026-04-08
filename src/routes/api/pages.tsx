@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { nanoid } from "nanoid";
 import { db } from "~/db";
 import { wikiPage } from "~/db/schema";
-import { getRequestUser, requireStaff } from "~/lib/auth";
-import { getUserDepartmentIds } from "~/lib/departments";
+import { getRequestUser, requirePermission } from "~/lib/auth";
+import { getAccessiblePageIds } from "~/lib/page-permissions";
 import { uniqueSlug } from "~/lib/slugify";
 import { resolveUserNames } from "~/lib/users";
 
@@ -19,36 +19,25 @@ export const Route = createFileRoute("/api/pages")({
 			 */
 			GET: async ({ request }: { request: Request }) => {
 				const { desc } = await import("drizzle-orm");
-				const user = getRequestUser(request);
 
-				// Filter out department-restricted pages the user can't access
-				let deptIds: Set<string> = new Set();
-				const isAdmin = user?.role === "admin";
-				if (!isAdmin && user) {
-					const auth = request.headers.get("authorization");
-					if (auth) {
-						deptIds = await getUserDepartmentIds(auth, user.id);
-					}
-				}
+				// Get the set of page IDs this user can access (null = no filtering needed)
+				const accessibleIds = await getAccessiblePageIds(request);
 
 				const rows = await db
 					.select({
+						id: wikiPage.id,
 						title: wikiPage.title,
 						slug: wikiPage.slug,
 						updatedBy: wikiPage.updatedBy,
 						updatedAt: wikiPage.updatedAt,
-						departmentId: wikiPage.departmentId,
 					})
 					.from(wikiPage)
 					.orderBy(desc(wikiPage.updatedAt))
 					.limit(200);
 
-				// Filter in application layer (simpler than dynamic SQL)
-				const filtered = isAdmin
-					? rows
-					: rows.filter(
-							(row) => !row.departmentId || deptIds.has(row.departmentId),
-						);
+				const filtered = accessibleIds
+					? rows.filter((row) => accessibleIds.has(row.id))
+					: rows;
 
 				const userIds = filtered.map((r) => r.updatedBy);
 				const nameMap = await resolveUserNames(userIds);
@@ -90,6 +79,9 @@ export const Route = createFileRoute("/api/pages")({
 			 * error: 403 Staff access required
 			 */
 			POST: async ({ request }: { request: Request }) => {
+				const permErr = requirePermission(request, "guidebook:pages:write");
+				if (permErr) return permErr;
+
 				const user = getRequestUser(request);
 				if (!user) {
 					return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -97,8 +89,6 @@ export const Route = createFileRoute("/api/pages")({
 						headers: { "Content-Type": "application/json" },
 					});
 				}
-				const staffError = requireStaff(user);
-				if (staffError) return staffError;
 
 				let body: { title?: string; content?: string; parentSlug?: string };
 				try {

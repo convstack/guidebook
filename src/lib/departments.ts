@@ -6,7 +6,6 @@ const CACHE_TTL = 5 * 60 * 1000;
 
 /**
  * Fetch the list of department/organization IDs the user belongs to.
- * Uses the user's Bearer token to call Lanyard's /api/user/departments endpoint.
  */
 export async function getUserDepartmentIds(
 	authorization: string,
@@ -43,19 +42,13 @@ export async function getUserDepartmentIds(
  * Returns null if access is allowed, or a 403 Response if denied.
  *
  * - Pages with no departmentId are accessible to everyone.
- * - Pages with a departmentId require the user to be a member of that department,
- *   or have an admin role.
+ * - Pages with a departmentId require the user to be a member of that department.
  */
 export async function checkDepartmentAccess(
 	request: Request,
 	departmentId: string | null,
-	userRole: string,
 ): Promise<Response | null> {
-	// No department restriction — accessible to all
 	if (!departmentId) return null;
-
-	// Admins can access all pages
-	if (userRole === "admin") return null;
 
 	const authorization = request.headers.get("authorization");
 	const userId = request.headers.get("x-user-id");
@@ -71,7 +64,9 @@ export async function checkDepartmentAccess(
 
 	if (!departments.has(departmentId)) {
 		return new Response(
-			JSON.stringify({ error: "You do not have access to this page" }),
+			JSON.stringify({
+				error: "You do not have access to this page",
+			}),
 			{ status: 403, headers: { "Content-Type": "application/json" } },
 		);
 	}

@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { db } from "~/db";
 import { wikiPage } from "~/db/schema";
-import { getRequestUser } from "~/lib/auth";
-import { getUserDepartmentIds } from "~/lib/departments";
+import { getAccessiblePageIds } from "~/lib/page-permissions";
 
 interface TreeNode {
 	title: string;
@@ -18,33 +17,24 @@ export const Route = createFileRoute("/api/sidebar-tree")({
 			 */
 			GET: async ({ request }: { request: Request }) => {
 				const { asc } = await import("drizzle-orm");
-				const user = getRequestUser(request);
 
-				// Resolve department memberships for filtering
-				const isAdmin = user?.role === "admin";
-				let deptIds: Set<string> = new Set();
-				if (!isAdmin && user) {
-					const auth = request.headers.get("authorization");
-					if (auth) {
-						deptIds = await getUserDepartmentIds(auth, user.id);
-					}
-				}
+				// Get the set of page IDs this user can access (null = no filtering needed)
+				const accessibleIds = await getAccessiblePageIds(request);
 
 				const pages = await db
 					.select({
+						id: wikiPage.id,
 						title: wikiPage.title,
 						slug: wikiPage.slug,
 						parentSlug: wikiPage.parentSlug,
 						sortOrder: wikiPage.sortOrder,
-						departmentId: wikiPage.departmentId,
 					})
 					.from(wikiPage)
 					.orderBy(asc(wikiPage.sortOrder), asc(wikiPage.title));
 
-				// Filter out department-restricted pages the user can't access
-				const accessible = isAdmin
-					? pages
-					: pages.filter((p) => !p.departmentId || deptIds.has(p.departmentId));
+				const accessible = accessibleIds
+					? pages.filter((p) => accessibleIds.has(p.id))
+					: pages;
 
 				// Build tree from flat list
 				const nodeMap = new Map<string, TreeNode>();

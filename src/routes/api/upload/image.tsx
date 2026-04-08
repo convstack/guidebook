@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getRequestUser, requireStaff } from "~/lib/auth";
+import { requirePermission } from "~/lib/auth";
+import { checkPageAccess } from "~/lib/page-permissions";
 import { isS3Configured, uploadFile } from "~/lib/s3";
 
 const ALLOWED_TYPES = [
@@ -16,28 +17,45 @@ export const Route = createFileRoute("/api/upload/image")({
 		handlers: {
 			/** @openapi
 			 * summary: Upload an image for wiki pages
-			 * description: Accepts JPEG, PNG, GIF, WebP, SVG up to 5MB.
-			 * auth: staff
+			 * description: |
+			 *   Accepts JPEG, PNG, GIF, WebP, SVG up to 5MB.
+			 *   If pageSlug query param is set, requires write access on that page.
+			 *   Otherwise, falls back to service-level guidebook:pages:write.
 			 * contentType: multipart/form-data
+			 * query:
+			 *   pageSlug: string - Page slug the upload is intended for
 			 * body:
 			 *   file: binary (required) - Image file
 			 * response: 200
 			 *   url: string
 			 * error: 400 Invalid file type or size
-			 * error: 401 Unauthorized
-			 * error: 403 Staff access required
+			 * error: 403 Write access required
 			 * error: 501 S3 uploads not configured
 			 */
 			POST: async ({ request }: { request: Request }) => {
-				const user = getRequestUser(request);
-				if (!user) {
-					return new Response(JSON.stringify({ error: "Unauthorized" }), {
-						status: 401,
-						headers: { "Content-Type": "application/json" },
-					});
+				const reqUrl = new URL(request.url);
+				const pageSlug = reqUrl.searchParams.get("pageSlug");
+
+				if (pageSlug) {
+					const access = await checkPageAccess(request, pageSlug);
+					if (!access.canWrite) {
+						return new Response(
+							JSON.stringify({
+								error: "Write access to this page is required",
+							}),
+							{
+								status: 403,
+								headers: { "Content-Type": "application/json" },
+							},
+						);
+					}
+				} else {
+					const permErr = requirePermission(
+						request,
+						"guidebook:pages:write",
+					);
+					if (permErr) return permErr;
 				}
-				const staffError = requireStaff(user);
-				if (staffError) return staffError;
 
 				if (!isS3Configured()) {
 					return new Response(

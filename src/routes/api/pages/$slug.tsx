@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { nanoid } from "nanoid";
 import { db } from "~/db";
 import { wikiPage, wikiRevision } from "~/db/schema";
-import { getRequestUser, requireStaff } from "~/lib/auth";
-import { checkDepartmentAccess } from "~/lib/departments";
+import { getRequestUser } from "~/lib/auth";
+import { checkPageAccess } from "~/lib/page-permissions";
 import { resolveUserName } from "~/lib/users";
 import { resolveWikiLinks } from "~/lib/wiki-links";
 import { ensureMainPage } from "~/server/services/init";
@@ -29,7 +29,6 @@ export const Route = createFileRoute("/api/pages/$slug")({
 				params: { slug: string };
 			}) => {
 				const { eq } = await import("drizzle-orm");
-				const user = getRequestUser(request);
 
 				// Auto-create main page on first access if it doesn't exist
 				if (params.slug === "main-page") {
@@ -49,21 +48,21 @@ export const Route = createFileRoute("/api/pages/$slug")({
 					});
 				}
 
-				// Department-restricted pages require membership
-				const deptError = await checkDepartmentAccess(
-					request,
-					page.departmentId,
-					user?.role ?? "user",
-				);
-				if (deptError) return deptError;
+				// Check page-level permissions (with parent inheritance)
+				const access = await checkPageAccess(request, params.slug);
+				if (!access.canRead) {
+					return new Response(
+						JSON.stringify({ error: "You do not have access to this page" }),
+						{ status: 403, headers: { "Content-Type": "application/json" } },
+					);
+				}
 
 				const resolvedContent = await resolveWikiLinks(
 					page.content,
 					"guidebook",
 				);
 
-				const isStaffOrAdmin =
-					user && (user.role === "staff" || user.role === "admin");
+				const canEdit = access.canWrite;
 
 				const editorName = await resolveUserName(page.updatedBy);
 
@@ -76,11 +75,15 @@ export const Route = createFileRoute("/api/pages/$slug")({
 					},
 				};
 
-				if (isStaffOrAdmin) {
-					response.actions = {
+				if (canEdit) {
+					const actions: Record<string, string> = {
 						editLink: `/pages/${page.slug}/edit`,
 						historyLink: `/pages/${page.slug}/history`,
 					};
+					if (access.canAdmin) {
+						actions.permissionsLink = `/pages/${page.slug}/permissions`;
+					}
+					response.actions = actions;
 				}
 
 				return new Response(JSON.stringify(response), {
@@ -118,9 +121,6 @@ export const Route = createFileRoute("/api/pages/$slug")({
 						headers: { "Content-Type": "application/json" },
 					});
 				}
-				const staffError = requireStaff(user);
-				if (staffError) return staffError;
-
 				const { eq, like, sql } = await import("drizzle-orm");
 
 				const [page] = await db
@@ -136,12 +136,13 @@ export const Route = createFileRoute("/api/pages/$slug")({
 					});
 				}
 
-				const deptError = await checkDepartmentAccess(
-					request,
-					page.departmentId,
-					user.role,
-				);
-				if (deptError) return deptError;
+				const access = await checkPageAccess(request, params.slug);
+				if (!access.canWrite) {
+					return new Response(
+						JSON.stringify({ error: "You do not have write access to this page" }),
+						{ status: 403, headers: { "Content-Type": "application/json" } },
+					);
+				}
 
 				let body: {
 					title?: string;
@@ -249,16 +250,10 @@ export const Route = createFileRoute("/api/pages/$slug")({
 				request: Request;
 				params: { slug: string };
 			}) => {
-				const user = getRequestUser(request);
-				if (!user) {
-					return new Response(JSON.stringify({ error: "Unauthorized" }), {
-						status: 401,
-						headers: { "Content-Type": "application/json" },
-					});
-				}
-				if (user.role !== "admin") {
+				const access = await checkPageAccess(request, params.slug);
+				if (!access.canAdmin) {
 					return new Response(
-						JSON.stringify({ error: "Admin access required" }),
+						JSON.stringify({ error: "Admin access required to delete" }),
 						{
 							status: 403,
 							headers: { "Content-Type": "application/json" },

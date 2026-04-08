@@ -17,9 +17,12 @@ import { Route as ApiOpenapiRouteImport } from './routes/api/openapi'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiUploadImageRouteImport } from './routes/api/upload/image'
 import { Route as ApiPagesSlugRouteImport } from './routes/api/pages/$slug'
+import { Route as ApiPagesSlugPermissionsRouteImport } from './routes/api/pages/$slug/permissions'
 import { Route as ApiPagesSlugHistoryRouteImport } from './routes/api/pages/$slug/history'
 import { Route as ApiPagesSlugActionsRouteImport } from './routes/api/pages/$slug/actions'
 import { Route as ApiPagesSlugRevisionsRevisionIdRouteImport } from './routes/api/pages/$slug/revisions/$revisionId'
+import { Route as ApiPagesSlugPermissionsNewRouteImport } from './routes/api/pages/$slug/permissions/new'
+import { Route as ApiPagesSlugPermissionsIdRouteImport } from './routes/api/pages/$slug/permissions/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -61,6 +64,11 @@ const ApiPagesSlugRoute = ApiPagesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => ApiPagesRoute,
 } as any)
+const ApiPagesSlugPermissionsRoute = ApiPagesSlugPermissionsRouteImport.update({
+  id: '/permissions',
+  path: '/permissions',
+  getParentRoute: () => ApiPagesSlugRoute,
+} as any)
 const ApiPagesSlugHistoryRoute = ApiPagesSlugHistoryRouteImport.update({
   id: '/history',
   path: '/history',
@@ -77,6 +85,18 @@ const ApiPagesSlugRevisionsRevisionIdRoute =
     path: '/revisions/$revisionId',
     getParentRoute: () => ApiPagesSlugRoute,
   } as any)
+const ApiPagesSlugPermissionsNewRoute =
+  ApiPagesSlugPermissionsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => ApiPagesSlugPermissionsRoute,
+  } as any)
+const ApiPagesSlugPermissionsIdRoute =
+  ApiPagesSlugPermissionsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => ApiPagesSlugPermissionsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,6 +109,9 @@ export interface FileRoutesByFullPath {
   '/api/upload/image': typeof ApiUploadImageRoute
   '/api/pages/$slug/actions': typeof ApiPagesSlugActionsRoute
   '/api/pages/$slug/history': typeof ApiPagesSlugHistoryRoute
+  '/api/pages/$slug/permissions': typeof ApiPagesSlugPermissionsRouteWithChildren
+  '/api/pages/$slug/permissions/$id': typeof ApiPagesSlugPermissionsIdRoute
+  '/api/pages/$slug/permissions/new': typeof ApiPagesSlugPermissionsNewRoute
   '/api/pages/$slug/revisions/$revisionId': typeof ApiPagesSlugRevisionsRevisionIdRoute
 }
 export interface FileRoutesByTo {
@@ -102,6 +125,9 @@ export interface FileRoutesByTo {
   '/api/upload/image': typeof ApiUploadImageRoute
   '/api/pages/$slug/actions': typeof ApiPagesSlugActionsRoute
   '/api/pages/$slug/history': typeof ApiPagesSlugHistoryRoute
+  '/api/pages/$slug/permissions': typeof ApiPagesSlugPermissionsRouteWithChildren
+  '/api/pages/$slug/permissions/$id': typeof ApiPagesSlugPermissionsIdRoute
+  '/api/pages/$slug/permissions/new': typeof ApiPagesSlugPermissionsNewRoute
   '/api/pages/$slug/revisions/$revisionId': typeof ApiPagesSlugRevisionsRevisionIdRoute
 }
 export interface FileRoutesById {
@@ -116,6 +142,9 @@ export interface FileRoutesById {
   '/api/upload/image': typeof ApiUploadImageRoute
   '/api/pages/$slug/actions': typeof ApiPagesSlugActionsRoute
   '/api/pages/$slug/history': typeof ApiPagesSlugHistoryRoute
+  '/api/pages/$slug/permissions': typeof ApiPagesSlugPermissionsRouteWithChildren
+  '/api/pages/$slug/permissions/$id': typeof ApiPagesSlugPermissionsIdRoute
+  '/api/pages/$slug/permissions/new': typeof ApiPagesSlugPermissionsNewRoute
   '/api/pages/$slug/revisions/$revisionId': typeof ApiPagesSlugRevisionsRevisionIdRoute
 }
 export interface FileRouteTypes {
@@ -131,6 +160,9 @@ export interface FileRouteTypes {
     | '/api/upload/image'
     | '/api/pages/$slug/actions'
     | '/api/pages/$slug/history'
+    | '/api/pages/$slug/permissions'
+    | '/api/pages/$slug/permissions/$id'
+    | '/api/pages/$slug/permissions/new'
     | '/api/pages/$slug/revisions/$revisionId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -144,6 +176,9 @@ export interface FileRouteTypes {
     | '/api/upload/image'
     | '/api/pages/$slug/actions'
     | '/api/pages/$slug/history'
+    | '/api/pages/$slug/permissions'
+    | '/api/pages/$slug/permissions/$id'
+    | '/api/pages/$slug/permissions/new'
     | '/api/pages/$slug/revisions/$revisionId'
   id:
     | '__root__'
@@ -157,6 +192,9 @@ export interface FileRouteTypes {
     | '/api/upload/image'
     | '/api/pages/$slug/actions'
     | '/api/pages/$slug/history'
+    | '/api/pages/$slug/permissions'
+    | '/api/pages/$slug/permissions/$id'
+    | '/api/pages/$slug/permissions/new'
     | '/api/pages/$slug/revisions/$revisionId'
   fileRoutesById: FileRoutesById
 }
@@ -228,6 +266,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPagesSlugRouteImport
       parentRoute: typeof ApiPagesRoute
     }
+    '/api/pages/$slug/permissions': {
+      id: '/api/pages/$slug/permissions'
+      path: '/permissions'
+      fullPath: '/api/pages/$slug/permissions'
+      preLoaderRoute: typeof ApiPagesSlugPermissionsRouteImport
+      parentRoute: typeof ApiPagesSlugRoute
+    }
     '/api/pages/$slug/history': {
       id: '/api/pages/$slug/history'
       path: '/history'
@@ -249,18 +294,50 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPagesSlugRevisionsRevisionIdRouteImport
       parentRoute: typeof ApiPagesSlugRoute
     }
+    '/api/pages/$slug/permissions/new': {
+      id: '/api/pages/$slug/permissions/new'
+      path: '/new'
+      fullPath: '/api/pages/$slug/permissions/new'
+      preLoaderRoute: typeof ApiPagesSlugPermissionsNewRouteImport
+      parentRoute: typeof ApiPagesSlugPermissionsRoute
+    }
+    '/api/pages/$slug/permissions/$id': {
+      id: '/api/pages/$slug/permissions/$id'
+      path: '/$id'
+      fullPath: '/api/pages/$slug/permissions/$id'
+      preLoaderRoute: typeof ApiPagesSlugPermissionsIdRouteImport
+      parentRoute: typeof ApiPagesSlugPermissionsRoute
+    }
   }
 }
+
+interface ApiPagesSlugPermissionsRouteChildren {
+  ApiPagesSlugPermissionsIdRoute: typeof ApiPagesSlugPermissionsIdRoute
+  ApiPagesSlugPermissionsNewRoute: typeof ApiPagesSlugPermissionsNewRoute
+}
+
+const ApiPagesSlugPermissionsRouteChildren: ApiPagesSlugPermissionsRouteChildren =
+  {
+    ApiPagesSlugPermissionsIdRoute: ApiPagesSlugPermissionsIdRoute,
+    ApiPagesSlugPermissionsNewRoute: ApiPagesSlugPermissionsNewRoute,
+  }
+
+const ApiPagesSlugPermissionsRouteWithChildren =
+  ApiPagesSlugPermissionsRoute._addFileChildren(
+    ApiPagesSlugPermissionsRouteChildren,
+  )
 
 interface ApiPagesSlugRouteChildren {
   ApiPagesSlugActionsRoute: typeof ApiPagesSlugActionsRoute
   ApiPagesSlugHistoryRoute: typeof ApiPagesSlugHistoryRoute
+  ApiPagesSlugPermissionsRoute: typeof ApiPagesSlugPermissionsRouteWithChildren
   ApiPagesSlugRevisionsRevisionIdRoute: typeof ApiPagesSlugRevisionsRevisionIdRoute
 }
 
 const ApiPagesSlugRouteChildren: ApiPagesSlugRouteChildren = {
   ApiPagesSlugActionsRoute: ApiPagesSlugActionsRoute,
   ApiPagesSlugHistoryRoute: ApiPagesSlugHistoryRoute,
+  ApiPagesSlugPermissionsRoute: ApiPagesSlugPermissionsRouteWithChildren,
   ApiPagesSlugRevisionsRevisionIdRoute: ApiPagesSlugRevisionsRevisionIdRoute,
 }
 
