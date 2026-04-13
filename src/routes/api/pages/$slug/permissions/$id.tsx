@@ -1,3 +1,4 @@
+import { createHandler, httpError } from "@convstack/service-sdk/handlers";
 import { createFileRoute } from "@tanstack/react-router";
 import { db } from "~/db";
 import { wikiPagePermission } from "~/db/schema";
@@ -14,37 +15,25 @@ export const Route = createFileRoute("/api/pages/$slug/permissions/$id")({
 			 * error: 403 Admin access required
 			 * error: 404 Not found
 			 */
-			DELETE: async ({
-				request,
-				params,
-			}: {
-				request: Request;
-				params: { slug: string; id: string };
-			}) => {
-				const access = await checkPageAccess(request, params.slug);
-				if (!access.canAdmin) {
-					return new Response(
-						JSON.stringify({
-							error: "Admin access to this page is required",
-						}),
-						{
-							status: 403,
-							headers: { "Content-Type": "application/json" },
-						},
-					);
-				}
+			DELETE: createHandler({
+				db,
+				handler: async (ctx) => {
+					const { slug, id } = ctx.input as { slug: string; id: string };
 
-				const { eq } = await import("drizzle-orm");
+					const access = await checkPageAccess(ctx.request, slug);
+					if (!access.canAdmin) {
+						throw httpError.forbidden("Admin access to this page is required");
+					}
 
-				await db
-					.delete(wikiPagePermission)
-					.where(eq(wikiPagePermission.id, params.id));
+					const { eq } = await import("drizzle-orm");
 
-				return new Response(JSON.stringify({ success: true }), {
-					status: 200,
-					headers: { "Content-Type": "application/json" },
-				});
-			},
+					await db
+						.delete(wikiPagePermission)
+						.where(eq(wikiPagePermission.id, id));
+
+					return { success: true };
+				},
+			}),
 		},
 	},
 });

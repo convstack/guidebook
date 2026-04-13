@@ -1,5 +1,5 @@
 {
-	"name": "@convention/guidebook",
+	"name": "@convstack/guidebook",
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
@@ -17,11 +17,11 @@
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.1024.0",
-		"@convstack/service-sdk": "../service-sdk",
+		"@convstack/service-sdk": "^0.1.0",
 		"@tanstack/react-router": "^1.168.2",
 		"@tanstack/react-start": "^1.167.3",
 		"clsx": "^2.1.1",
-		"drizzle-orm": "1.0.0-beta.18-7eb39f0",
+		"drizzle-orm": "1.0.0-beta.20-afec359",
 		"lucide-react": "^0.500.0",
 		"nanoid": "^5.1.5",
 		"pg": "^8.16.0",
@@ -38,7 +38,7 @@
 		"@types/react": "^19.2.14",
 		"@types/react-dom": "^19.2.3",
 		"@vitejs/plugin-react": "^6.0.1",
-		"drizzle-kit": "1.0.0-beta.18-7eb39f0",
+		"drizzle-kit": "1.0.0-beta.20-afec359",
 		"tailwindcss": "^4.2.2",
 		"typescript": "^6.0.2",
 		"vite": "^8.0.1"

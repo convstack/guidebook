@@ -1,7 +1,6 @@
-import { drizzle } from "drizzle-orm/node-postgres";
+import { createDb } from "@convstack/service-sdk/db";
 import * as schema from "./schema";
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) throw new Error("DATABASE_URL is required");
-
-export const db = drizzle(databaseUrl, { schema });
+export const db = createDb();
+export type Database = typeof db;
+export { schema };

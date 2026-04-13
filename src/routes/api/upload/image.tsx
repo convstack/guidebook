@@ -50,10 +50,7 @@ export const Route = createFileRoute("/api/upload/image")({
 						);
 					}
 				} else {
-					const permErr = requirePermission(
-						request,
-						"guidebook:pages:write",
-					);
+					const permErr = requirePermission(request, "guidebook:pages:write");
 					if (permErr) return permErr;
 				}
 

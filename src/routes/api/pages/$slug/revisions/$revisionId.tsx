@@ -1,5 +1,5 @@
+import { createHandler, httpError } from "@convstack/service-sdk/handlers";
 import { createFileRoute } from "@tanstack/react-router";
-import { getRequestUser } from "~/lib/auth";
 import { resolveUserName } from "~/lib/users";
 
 export const Route = createFileRoute("/api/pages/$slug/revisions/$revisionId")({
@@ -14,61 +14,58 @@ export const Route = createFileRoute("/api/pages/$slug/revisions/$revisionId")({
 			 *   content: string
 			 *   metadata: object
 			 *   diff: array
+			 *   topBar: object
 			 * error: 401 Unauthorized
 			 * error: 404 Revision not found
 			 */
-			GET: async ({
-				request,
-				params,
-			}: {
-				request: Request;
-				params: { slug: string; revisionId: string };
-			}) => {
-				const user = getRequestUser(request);
-				if (!user) {
-					return new Response(JSON.stringify({ error: "Unauthorized" }), {
-						status: 401,
-						headers: { "Content-Type": "application/json" },
-					});
-				}
+			GET: createHandler({
+				handler: async (ctx) => {
+					if (!ctx.user) throw httpError.unauthorized();
 
-				const { db } = await import("~/db");
-				const { wikiPage, wikiRevision } = await import("~/db/schema");
-				const { eq } = await import("drizzle-orm");
+					const { db } = await import("~/db");
+					const { wikiPage, wikiRevision } = await import("~/db/schema");
+					const { eq } = await import("drizzle-orm");
+					const { slug, revisionId } = ctx.input as {
+						slug: string;
+						revisionId: string;
+					};
 
-				// Fetch the revision
-				const [revision] = await db
-					.select()
-					.from(wikiRevision)
-					.where(eq(wikiRevision.id, params.revisionId))
-					.limit(1);
+					// Fetch the revision
+					const [revision] = await db
+						.select()
+						.from(wikiRevision)
+						.where(eq(wikiRevision.id, revisionId))
+						.limit(1);
 
-				if (!revision) {
-					return new Response(JSON.stringify({ error: "Revision not found" }), {
-						status: 404,
-						headers: { "Content-Type": "application/json" },
-					});
-				}
+					if (!revision) throw httpError.notFound("Revision not found");
 
-				// Fetch current page content for diff
-				const [currentPage] = await db
-					.select({
-						content: wikiPage.content,
-						title: wikiPage.title,
-					})
-					.from(wikiPage)
-					.where(eq(wikiPage.slug, params.slug))
-					.limit(1);
+					// Fetch current page content for diff
+					const [currentPage] = await db
+						.select({
+							content: wikiPage.content,
+							title: wikiPage.title,
+						})
+						.from(wikiPage)
+						.where(eq(wikiPage.slug, slug))
+						.limit(1);
 
-				const editorName = await resolveUserName(revision.editedBy);
+					const editorName = await resolveUserName(revision.editedBy);
 
-				// Build a simple line diff between revision and current content
-				const diff = currentPage
-					? buildDiff(revision.content, currentPage.content)
-					: null;
+					// Build a simple line diff between revision and current content
+					const diff = currentPage
+						? buildDiff(revision.content, currentPage.content)
+						: null;
 
-				return new Response(
-					JSON.stringify({
+					const parentLabel = currentPage?.title ?? revision.title;
+					const topBar = {
+						breadcrumbs: [
+							{ label: parentLabel, href: `/pages/${slug}` },
+							{ label: "History", href: `/pages/${slug}/history` },
+							{ label: "Revision" },
+						],
+					};
+
+					return {
 						title: `${revision.title} (revision)`,
 						content: revision.content,
 						metadata: {
@@ -76,13 +73,10 @@ export const Route = createFileRoute("/api/pages/$slug/revisions/$revisionId")({
 							lastEditedAt: revision.createdAt?.toISOString(),
 						},
 						diff,
-					}),
-					{
-						status: 200,
-						headers: { "Content-Type": "application/json" },
-					},
-				);
-			},
+						topBar,
+					};
+				},
+			}),
 		},
 	},
 });

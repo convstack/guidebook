@@ -1,3 +1,4 @@
+import { createHandler } from "@convstack/service-sdk/handlers";
 import { createFileRoute } from "@tanstack/react-router";
 import { db } from "~/db";
 import { wikiPage } from "~/db/schema";
@@ -65,74 +66,70 @@ export const Route = createFileRoute("/api/search")({
 			 * response: 200
 			 *   results: array
 			 */
-			GET: async ({ request }: { request: Request }) => {
-				const { sql, desc } = await import("drizzle-orm");
+			GET: createHandler({
+				db,
+				handler: async (ctx) => {
+					const { sql, desc } = await import("drizzle-orm");
 
-				const url = new URL(request.url);
-				const q = url.searchParams.get("q")?.trim();
+					const q = (ctx.input as { q?: string }).q?.trim();
 
-				if (!q) {
-					return new Response(JSON.stringify({ results: [] }), {
-						status: 200,
-						headers: { "Content-Type": "application/json" },
+					if (!q) {
+						return { results: [] };
+					}
+
+					// Get the set of page IDs this user can access (null = no filtering needed)
+					const accessibleIds = await getAccessiblePageIds(ctx.request);
+
+					const ilike = (term: string) => `%${term}%`;
+
+					const rows = await db
+						.select({
+							id: wikiPage.id,
+							title: wikiPage.title,
+							slug: wikiPage.slug,
+							content: wikiPage.content,
+							updatedBy: wikiPage.updatedBy,
+							updatedAt: wikiPage.updatedAt,
+							rank: sql<number>`ts_rank(
+								to_tsvector('english', ${wikiPage.title} || ' ' || ${wikiPage.content}),
+								plainto_tsquery('english', ${q})
+							)`.as("rank"),
+						})
+						.from(wikiPage)
+						.where(
+							sql`
+								to_tsvector('english', ${wikiPage.title} || ' ' || ${wikiPage.content})
+								@@ plainto_tsquery('english', ${q})
+								OR ${wikiPage.title} ILIKE ${ilike(q)}
+								OR ${wikiPage.content} ILIKE ${ilike(q)}
+							`,
+						)
+						.orderBy(desc(sql`rank`))
+						.limit(30);
+
+					const filtered = accessibleIds
+						? rows.filter((row) => accessibleIds.has(row.id))
+						: rows;
+
+					const userIds = filtered.map((r) => r.updatedBy);
+					const nameMap = await resolveUserNames(userIds);
+
+					// Build results with snippets per page
+					const results = filtered.flatMap((row) => {
+						const matches = extractMatches(row.content, q);
+						return matches.map((match) => ({
+							title: row.title,
+							slug: row.slug,
+							snippet: match.snippet,
+							matchText: match.matchText,
+							updatedBy: nameMap.get(row.updatedBy) || row.updatedBy,
+							updatedAt: row.updatedAt,
+						}));
 					});
-				}
 
-				// Get the set of page IDs this user can access (null = no filtering needed)
-				const accessibleIds = await getAccessiblePageIds(request);
-
-				const ilike = (term: string) => `%${term}%`;
-
-				const rows = await db
-					.select({
-						id: wikiPage.id,
-						title: wikiPage.title,
-						slug: wikiPage.slug,
-						content: wikiPage.content,
-						updatedBy: wikiPage.updatedBy,
-						updatedAt: wikiPage.updatedAt,
-						rank: sql<number>`ts_rank(
-							to_tsvector('english', ${wikiPage.title} || ' ' || ${wikiPage.content}),
-							plainto_tsquery('english', ${q})
-						)`.as("rank"),
-					})
-					.from(wikiPage)
-					.where(
-						sql`
-							to_tsvector('english', ${wikiPage.title} || ' ' || ${wikiPage.content})
-							@@ plainto_tsquery('english', ${q})
-							OR ${wikiPage.title} ILIKE ${ilike(q)}
-							OR ${wikiPage.content} ILIKE ${ilike(q)}
-						`,
-					)
-					.orderBy(desc(sql`rank`))
-					.limit(30);
-
-				const filtered = accessibleIds
-					? rows.filter((row) => accessibleIds.has(row.id))
-					: rows;
-
-				const userIds = filtered.map((r) => r.updatedBy);
-				const nameMap = await resolveUserNames(userIds);
-
-				// Build results with snippets per page
-				const results = filtered.flatMap((row) => {
-					const matches = extractMatches(row.content, q);
-					return matches.map((match) => ({
-						title: row.title,
-						slug: row.slug,
-						snippet: match.snippet,
-						matchText: match.matchText,
-						updatedBy: nameMap.get(row.updatedBy) || row.updatedBy,
-						updatedAt: row.updatedAt,
-					}));
-				});
-
-				return new Response(JSON.stringify({ results }), {
-					status: 200,
-					headers: { "Content-Type": "application/json" },
-				});
-			},
+					return { results };
+				},
+			}),
 		},
 	},
 });

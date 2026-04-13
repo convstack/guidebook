@@ -1,8 +1,8 @@
+import { createHandler, httpError } from "@convstack/service-sdk/handlers";
 import { createFileRoute } from "@tanstack/react-router";
 import { nanoid } from "nanoid";
 import { db } from "~/db";
 import { wikiPage } from "~/db/schema";
-import { getRequestUser, requirePermission } from "~/lib/auth";
 import { getAccessiblePageIds } from "~/lib/page-permissions";
 import { uniqueSlug } from "~/lib/slugify";
 import { resolveUserNames } from "~/lib/users";
@@ -17,33 +17,34 @@ export const Route = createFileRoute("/api/pages")({
 			 *   rows: array
 			 *   total: integer
 			 */
-			GET: async ({ request }: { request: Request }) => {
-				const { desc } = await import("drizzle-orm");
+			GET: createHandler({
+				db,
+				handler: async (ctx) => {
+					const { desc } = await import("drizzle-orm");
 
-				// Get the set of page IDs this user can access (null = no filtering needed)
-				const accessibleIds = await getAccessiblePageIds(request);
+					// Get the set of page IDs this user can access (null = no filtering needed)
+					const accessibleIds = await getAccessiblePageIds(ctx.request);
 
-				const rows = await db
-					.select({
-						id: wikiPage.id,
-						title: wikiPage.title,
-						slug: wikiPage.slug,
-						updatedBy: wikiPage.updatedBy,
-						updatedAt: wikiPage.updatedAt,
-					})
-					.from(wikiPage)
-					.orderBy(desc(wikiPage.updatedAt))
-					.limit(200);
+					const rows = await db
+						.select({
+							id: wikiPage.id,
+							title: wikiPage.title,
+							slug: wikiPage.slug,
+							updatedBy: wikiPage.updatedBy,
+							updatedAt: wikiPage.updatedAt,
+						})
+						.from(wikiPage)
+						.orderBy(desc(wikiPage.updatedAt))
+						.limit(200);
 
-				const filtered = accessibleIds
-					? rows.filter((row) => accessibleIds.has(row.id))
-					: rows;
+					const filtered = accessibleIds
+						? rows.filter((row) => accessibleIds.has(row.id))
+						: rows;
 
-				const userIds = filtered.map((r) => r.updatedBy);
-				const nameMap = await resolveUserNames(userIds);
+					const userIds = filtered.map((r) => r.updatedBy);
+					const nameMap = await resolveUserNames(userIds);
 
-				return new Response(
-					JSON.stringify({
+					return {
 						columns: [
 							{ key: "title", label: "Title" },
 							{ key: "updatedBy", label: "Last Editor" },
@@ -56,13 +57,9 @@ export const Route = createFileRoute("/api/pages")({
 							updatedAt: row.updatedAt,
 						})),
 						total: filtered.length,
-					}),
-					{
-						status: 200,
-						headers: { "Content-Type": "application/json" },
-					},
-				);
-			},
+					};
+				},
+			}),
 
 			/** @openapi
 			 * summary: Create a new wiki page
@@ -78,63 +75,54 @@ export const Route = createFileRoute("/api/pages")({
 			 * error: 401 Unauthorized
 			 * error: 403 Staff access required
 			 */
-			POST: async ({ request }: { request: Request }) => {
-				const permErr = requirePermission(request, "guidebook:pages:write");
-				if (permErr) return permErr;
+			POST: createHandler({
+				db,
+				handler: async (ctx) => {
+					if (!ctx.permissions.includes("guidebook:pages:write")) {
+						if (!ctx.user) throw httpError.unauthorized();
+						throw httpError.forbidden(
+							'The "guidebook:pages:write" permission is required.',
+						);
+					}
 
-				const user = getRequestUser(request);
-				if (!user) {
-					return new Response(JSON.stringify({ error: "Unauthorized" }), {
-						status: 401,
-						headers: { "Content-Type": "application/json" },
+					if (!ctx.user) throw httpError.unauthorized();
+
+					const {
+						title,
+						content = "",
+						parentSlug,
+					} = ctx.input as {
+						title?: string;
+						content?: string;
+						parentSlug?: string;
+					};
+
+					if (!title || typeof title !== "string" || title.trim() === "") {
+						throw httpError.badRequest("Title is required");
+					}
+
+					const slug = await uniqueSlug(title.trim());
+					const id = nanoid();
+					const now = new Date();
+
+					await db.insert(wikiPage).values({
+						id,
+						title: title.trim(),
+						slug,
+						content,
+						parentSlug: parentSlug || null,
+						createdBy: ctx.user.id,
+						updatedBy: ctx.user.id,
+						createdAt: now,
+						updatedAt: now,
 					});
-				}
 
-				let body: { title?: string; content?: string; parentSlug?: string };
-				try {
-					body = await request.json();
-				} catch {
-					return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-						status: 400,
-						headers: { "Content-Type": "application/json" },
-					});
-				}
-
-				const { title, content = "", parentSlug } = body;
-				if (!title || typeof title !== "string" || title.trim() === "") {
-					return new Response(JSON.stringify({ error: "Title is required" }), {
-						status: 400,
-						headers: { "Content-Type": "application/json" },
-					});
-				}
-
-				const slug = await uniqueSlug(title.trim());
-				const id = nanoid();
-				const now = new Date();
-
-				await db.insert(wikiPage).values({
-					id,
-					title: title.trim(),
-					slug,
-					content,
-					parentSlug: parentSlug || null,
-					createdBy: user.id,
-					updatedBy: user.id,
-					createdAt: now,
-					updatedAt: now,
-				});
-
-				return new Response(
-					JSON.stringify({
+					return {
 						success: true,
 						redirect: `/guidebook/pages/${slug}`,
-					}),
-					{
-						status: 201,
-						headers: { "Content-Type": "application/json" },
-					},
-				);
-			},
+					};
+				},
+			}),
 		},
 	},
 });

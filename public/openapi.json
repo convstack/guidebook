@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "@convention/guidebook",
+    "title": "@convstack/guidebook",
     "version": "0.1.0"
   },
   "paths": {
@@ -87,7 +87,7 @@
         "tags": [
           "pages"
         ],
-        "summary": "Get revision history for a page",
+        "summary": "Get revision history for a page as a timeline",
         "parameters": [
           {
             "name": "slug",
@@ -106,14 +106,11 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "columns": {
+                    "events": {
                       "type": "array"
                     },
-                    "rows": {
-                      "type": "array"
-                    },
-                    "total": {
-                      "type": "integer"
+                    "topBar": {
+                      "type": "string"
                     }
                   }
                 }
@@ -290,8 +287,20 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "permissions": {
+                    "columns": {
                       "type": "array"
+                    },
+                    "rows": {
+                      "type": "array"
+                    },
+                    "rowActions": {
+                      "type": "array"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "topBar": {
+                      "type": "string"
                     }
                   }
                 }
@@ -483,6 +492,9 @@
                     },
                     "diff": {
                       "type": "array"
+                    },
+                    "topBar": {
+                      "type": "string"
                     }
                   }
                 }
@@ -556,7 +568,7 @@
                     "metadata": {
                       "type": "string"
                     },
-                    "actions": {
+                    "topBar": {
                       "type": "string"
                     }
                   }

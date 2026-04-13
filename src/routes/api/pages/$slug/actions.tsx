@@ -1,3 +1,4 @@
+import { createHandler } from "@convstack/service-sdk/handlers";
 import { createFileRoute } from "@tanstack/react-router";
 import { checkPageAccess } from "~/lib/page-permissions";
 
@@ -10,54 +11,48 @@ export const Route = createFileRoute("/api/pages/$slug/actions")({
 			 * response: 200
 			 *   actions: array
 			 */
-			GET: async ({
-				request,
-				params,
-			}: {
-				request: Request;
-				params: { slug: string };
-			}) => {
-				const access = await checkPageAccess(request, params.slug);
+			GET: createHandler({
+				handler: async (ctx) => {
+					const slug = ctx.input.slug as string;
+					const access = await checkPageAccess(ctx.request, slug);
 
-				const actions: Array<{
-					label: string;
-					href?: string;
-					danger?: boolean;
-					confirm?: boolean;
-					redirect?: string;
-				}> = [];
+					const actions: Array<{
+						label: string;
+						href?: string;
+						danger?: boolean;
+						confirm?: boolean;
+						redirect?: string;
+					}> = [];
 
-				if (access.canWrite) {
-					actions.push(
-						{
-							label: "Edit",
-							href: `/pages/${params.slug}/edit`,
-						},
-						{
-							label: "History",
-							href: `/pages/${params.slug}/history`,
-						},
-					);
-				}
+					if (access.canWrite) {
+						actions.push(
+							{
+								label: "Edit",
+								href: `/pages/${slug}/edit`,
+							},
+							{
+								label: "History",
+								href: `/pages/${slug}/history`,
+							},
+						);
+					}
 
-				if (access.canAdmin) {
-					actions.push({
-						label: "Permissions",
-						href: `/pages/${params.slug}/permissions`,
-					});
-					actions.push({
-						label: "Delete",
-						danger: true,
-						confirm: true,
-						redirect: "/",
-					});
-				}
+					if (access.canAdmin) {
+						actions.push({
+							label: "Permissions",
+							href: `/pages/${slug}/permissions`,
+						});
+						actions.push({
+							label: "Delete",
+							danger: true,
+							confirm: true,
+							redirect: "/",
+						});
+					}
 
-				return new Response(JSON.stringify({ actions }), {
-					status: 200,
-					headers: { "Content-Type": "application/json" },
-				});
-			},
+					return { actions };
+				},
+			}),
 		},
 	},
 });

@@ -1,3 +1,4 @@
+import { createHandler, httpError } from "@convstack/service-sdk/handlers";
 import { createFileRoute } from "@tanstack/react-router";
 import { checkPageAccess } from "~/lib/page-permissions";
 
@@ -12,52 +13,38 @@ export const Route = createFileRoute("/api/pages/$slug/permissions/new")({
 			 * response: 200
 			 *   fields: array
 			 */
-			GET: async ({
-				request,
-				params,
-			}: {
-				request: Request;
-				params: { slug: string };
-			}) => {
-				const access = await checkPageAccess(request, params.slug);
-				if (!access.canAdmin) {
-					return new Response(
-						JSON.stringify({
-							fields: [],
-							error: "Admin access to this page is required",
-						}),
-						{
-							status: 403,
-							headers: { "Content-Type": "application/json" },
-						},
-					);
-				}
+			GET: createHandler({
+				handler: async (ctx) => {
+					const slug = (ctx.input as { slug: string }).slug;
 
-				// Fetch all departments from Lanyard
-				const authorization = request.headers.get("authorization");
-				let departments: Array<{ id: string; name: string }> = [];
-				if (authorization) {
-					try {
-						const response = await fetch(
-							`${LANYARD_URL}/api/departments`,
-							{ headers: { Authorization: authorization } },
-						);
-						if (response.ok) {
-							const data = await response.json();
-							departments = (data.rows ?? []).map(
-								(r: { id: string; name: string }) => ({
-									id: r.id,
-									name: r.name,
-								}),
-							);
-						}
-					} catch {
-						// best effort
+					const access = await checkPageAccess(ctx.request, slug);
+					if (!access.canAdmin) {
+						throw httpError.forbidden("Admin access to this page is required");
 					}
-				}
 
-				return new Response(
-					JSON.stringify({
+					// Fetch all departments from Lanyard
+					const authorization = ctx.request.headers.get("authorization");
+					let departments: Array<{ id: string; name: string }> = [];
+					if (authorization) {
+						try {
+							const response = await fetch(`${LANYARD_URL}/api/departments`, {
+								headers: { Authorization: authorization },
+							});
+							if (response.ok) {
+								const data = await response.json();
+								departments = (data.rows ?? []).map(
+									(r: { id: string; name: string }) => ({
+										id: r.id,
+										name: r.name,
+									}),
+								);
+							}
+						} catch {
+							// best effort
+						}
+					}
+
+					return {
 						fields: [
 							{
 								key: "departmentId",
@@ -86,13 +73,9 @@ export const Route = createFileRoute("/api/pages/$slug/permissions/new")({
 								value: "",
 							},
 						],
-					}),
-					{
-						status: 200,
-						headers: { "Content-Type": "application/json" },
-					},
-				);
-			},
+					};
+				},
+			}),
 		},
 	},
 });
