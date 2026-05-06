@@ -25,8 +25,8 @@
 		"lucide-react": "^0.500.0",
 		"nanoid": "^5.1.5",
 		"pg": "^8.16.0",
-		"react": "^19.2.4",
-		"react-dom": "^19.2.4",
+		"react": "^19.2.6",
+		"react-dom": "^19.2.6",
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
