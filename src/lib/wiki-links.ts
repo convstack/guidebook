@@ -1,19 +1,11 @@
-/**
- * Resolve [[wiki links]] in markdown content to HTML links.
- * - [[Page Name]] → <a href="/guidebook/pages/page-slug">Page Name</a>
- * - [[Page Name|Display Text]] → <a href="/guidebook/pages/page-slug">Display Text</a>
- * - Broken links → <a href="..." class="wiki-link-broken">...</a>
- *
- * Skips wiki links inside code blocks (``` ```) and inline code (` `).
- */
-export async function resolveWikiLinks(
-	content: string,
-	serviceSlug: string,
-): Promise<string> {
-	const { db } = await import("~/db");
-	const { wikiPage } = await import("~/db/schema");
+interface WikiLinkMatch {
+	fullMatch: string;
+	inner: string;
+	index: number;
+}
 
-	// Find all [[...]] patterns outside of code spans/blocks
+/** Every [[...]] in the content that is not inside a code block or inline code. */
+function findWikiLinks(content: string): WikiLinkMatch[] {
 	const linkPattern = /\[\[([^\]]+)\]\]/g;
 
 	// Extract code regions to protect them from replacement
@@ -44,9 +36,7 @@ export async function resolveWikiLinks(
 		return codeRegions.some((r) => index >= r.start && index < r.end);
 	}
 
-	// Collect wiki link matches that are NOT inside code
-	const matches: Array<{ fullMatch: string; inner: string; index: number }> =
-		[];
+	const matches: WikiLinkMatch[] = [];
 	match = linkPattern.exec(content);
 	while (match) {
 		if (!isInsideCode(match.index)) {
@@ -58,6 +48,50 @@ export async function resolveWikiLinks(
 		}
 		match = linkPattern.exec(content);
 	}
+	return matches;
+}
+
+/**
+ * Point every link to oldTitle at newTitle, keeping any display text.
+ * Matches titles the way the viewer resolves them: trimmed, any case.
+ */
+export function renameWikiLinks(
+	content: string,
+	oldTitle: string,
+	newTitle: string,
+): string {
+	const wanted = oldTitle.trim().toLowerCase();
+	let result = content;
+	for (const m of findWikiLinks(content).reverse()) {
+		const bar = m.inner.indexOf("|");
+		const title = bar === -1 ? m.inner : m.inner.slice(0, bar);
+		if (title.trim().toLowerCase() !== wanted) continue;
+		const display = bar === -1 ? "" : m.inner.slice(bar);
+		result =
+			result.slice(0, m.index) +
+			`[[${newTitle}${display}]]` +
+			result.slice(m.index + m.fullMatch.length);
+	}
+	return result;
+}
+
+/**
+ * Resolve [[wiki links]] in markdown content to HTML links.
+ * - [[Page Name]] → <a href="/guidebook/pages/page-slug">Page Name</a>
+ * - [[Page Name|Display Text]] → <a href="/guidebook/pages/page-slug">Display Text</a>
+ * - Broken links → <a href="..." class="wiki-link-broken">...</a>
+ *
+ * Skips wiki links inside code blocks (``` ```) and inline code (` `).
+ */
+export async function resolveWikiLinks(
+	content: string,
+	serviceSlug: string,
+	readablePageIds: Set<string> | null,
+): Promise<string> {
+	const { db } = await import("~/db");
+	const { wikiPage } = await import("~/db/schema");
+
+	const matches = findWikiLinks(content);
 
 	if (matches.length === 0) return content;
 
@@ -70,11 +104,13 @@ export async function resolveWikiLinks(
 
 	// Look up slugs for all referenced titles
 	const allPages = await db
-		.select({ title: wikiPage.title, slug: wikiPage.slug })
+		.select({ id: wikiPage.id, title: wikiPage.title, slug: wikiPage.slug })
 		.from(wikiPage);
 
 	const titleToSlug = new Map<string, string>();
 	for (const page of allPages) {
+		// a page the viewer can't read looks like a page that doesn't exist
+		if (readablePageIds && !readablePageIds.has(page.id)) continue;
 		titleToSlug.set(page.title.toLowerCase(), page.slug);
 	}
 

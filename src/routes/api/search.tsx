@@ -78,7 +78,7 @@ export const Route = createFileRoute("/api/search")({
 					}
 
 					// Get the set of page IDs this user can access (null = no filtering needed)
-					const accessibleIds = await getAccessiblePageIds(ctx.request);
+					const accessibleIds = await getAccessiblePageIds(ctx);
 
 					const ilike = (term: string) => `%${term}%`;
 

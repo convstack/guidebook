@@ -1,5 +1,6 @@
 import { createHandler, httpError } from "@convstack/service-sdk/handlers";
 import { createFileRoute } from "@tanstack/react-router";
+import { checkPageAccess } from "~/lib/page-permissions";
 import { resolveUserName } from "~/lib/users";
 
 export const Route = createFileRoute("/api/pages/$slug/revisions/$revisionId")({
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/api/pages/$slug/revisions/$revisionId")({
 			 *   diff: array
 			 *   topBar: object
 			 * error: 401 Unauthorized
+			 * error: 404 Page not found
 			 * error: 404 Revision not found
 			 */
 			GET: createHandler({
@@ -24,42 +26,48 @@ export const Route = createFileRoute("/api/pages/$slug/revisions/$revisionId")({
 
 					const { db } = await import("~/db");
 					const { wikiPage, wikiRevision } = await import("~/db/schema");
-					const { eq } = await import("drizzle-orm");
+					const { and, eq } = await import("drizzle-orm");
 					const { slug, revisionId } = ctx.input as {
 						slug: string;
 						revisionId: string;
 					};
 
-					// Fetch the revision
-					const [revision] = await db
-						.select()
-						.from(wikiRevision)
-						.where(eq(wikiRevision.id, revisionId))
-						.limit(1);
-
-					if (!revision) throw httpError.notFound("Revision not found");
-
-					// Fetch current page content for diff
-					const [currentPage] = await db
+					const [page] = await db
 						.select({
-							content: wikiPage.content,
+							id: wikiPage.id,
 							title: wikiPage.title,
+							content: wikiPage.content,
 						})
 						.from(wikiPage)
 						.where(eq(wikiPage.slug, slug))
 						.limit(1);
+					if (!page) throw httpError.notFound("Page not found");
+
+					const access = await checkPageAccess(ctx, slug);
+					if (!access.canRead) throw httpError.notFound("Page not found");
+
+					// a revision of another page is not found here, whatever its id
+					const [revision] = await db
+						.select()
+						.from(wikiRevision)
+						.where(
+							and(
+								eq(wikiRevision.id, revisionId),
+								eq(wikiRevision.pageId, page.id),
+							),
+						)
+						.limit(1);
+
+					if (!revision) throw httpError.notFound("Revision not found");
 
 					const editorName = await resolveUserName(revision.editedBy);
 
 					// Build a simple line diff between revision and current content
-					const diff = currentPage
-						? buildDiff(revision.content, currentPage.content)
-						: null;
+					const diff = buildDiff(revision.content, page.content);
 
-					const parentLabel = currentPage?.title ?? revision.title;
 					const topBar = {
 						breadcrumbs: [
-							{ label: parentLabel, href: `/pages/${slug}` },
+							{ label: page.title, href: `/pages/${slug}` },
 							{ label: "History", href: `/pages/${slug}/history` },
 							{ label: "Revision" },
 						],

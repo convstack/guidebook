@@ -1,7 +1,7 @@
 import { createHandler, httpError } from "@convstack/service-sdk/handlers";
 import { createFileRoute } from "@tanstack/react-router";
 import { db } from "~/db";
-import { wikiPagePermission } from "~/db/schema";
+import { wikiPage, wikiPagePermission } from "~/db/schema";
 import { checkPageAccess } from "~/lib/page-permissions";
 
 export const Route = createFileRoute("/api/pages/$slug/permissions/$id")({
@@ -20,16 +20,32 @@ export const Route = createFileRoute("/api/pages/$slug/permissions/$id")({
 				handler: async (ctx) => {
 					const { slug, id } = ctx.input as { slug: string; id: string };
 
-					const access = await checkPageAccess(ctx.request, slug);
+					const access = await checkPageAccess(ctx, slug);
 					if (!access.canAdmin) {
 						throw httpError.forbidden("Admin access to this page is required");
 					}
 
-					const { eq } = await import("drizzle-orm");
+					const { and, eq } = await import("drizzle-orm");
 
-					await db
+					const [page] = await db
+						.select({ id: wikiPage.id })
+						.from(wikiPage)
+						.where(eq(wikiPage.slug, slug))
+						.limit(1);
+					if (!page) throw httpError.notFound("Page not found");
+
+					const removed = await db
 						.delete(wikiPagePermission)
-						.where(eq(wikiPagePermission.id, id));
+						.where(
+							and(
+								eq(wikiPagePermission.id, id),
+								eq(wikiPagePermission.pageId, page.id),
+							),
+						)
+						.returning({ id: wikiPagePermission.id });
+					if (removed.length === 0) {
+						throw httpError.notFound("Permission entry not found");
+					}
 
 					return { success: true };
 				},

@@ -14,9 +14,12 @@
  *    the page's creator, they get implicit admin access on that page.
  */
 
+import type { HandlerContext } from "@convstack/service-sdk/handlers";
 import { db } from "~/db";
 import { wikiPage, wikiPagePermission } from "~/db/schema";
-import { getUserDepartmentIds } from "~/lib/departments";
+
+// ctx from createHandler, or the same fields from getRequestUser
+type Viewer = Pick<HandlerContext, "user" | "permissions" | "orgRoles">;
 
 export interface PageAccessResult {
 	canRead: boolean;
@@ -35,11 +38,6 @@ const FULL_ACCESS: PageAccessResult = {
 	canWrite: true,
 	canAdmin: true,
 };
-
-function getServicePerms(request: Request): string[] {
-	const header = request.headers.get("x-user-permissions") || "";
-	return header.split(",").map((p) => p.trim());
-}
 
 function accessFromLevel(level: string): PageAccessResult {
 	if (level === "admin") return FULL_ACCESS;
@@ -64,23 +62,22 @@ function mergeAccess(
  * Walks up the parent chain to find the nearest permission entries.
  */
 export async function checkPageAccess(
-	request: Request,
+	viewer: Viewer,
 	pageSlug: string,
 ): Promise<PageAccessResult> {
-	const userId = request.headers.get("x-user-id");
-	const authorization = request.headers.get("authorization");
+	const userId = viewer.user?.id;
 
-	if (!userId || !authorization) {
+	if (!userId) {
 		return NO_ACCESS;
 	}
 
 	// Escape hatch: service-level guidebook:admin bypasses everything
-	const servicePerms = getServicePerms(request);
+	const servicePerms = viewer.permissions;
 	if (servicePerms.includes("guidebook:admin")) {
 		return FULL_ACCESS;
 	}
 
-	const userDepts = await getUserDepartmentIds(authorization, userId);
+	const userDepts = new Set(viewer.orgRoles.map((r) => r.orgId));
 
 	const { eq } = await import("drizzle-orm");
 
@@ -157,24 +154,23 @@ export async function checkPageAccess(
  * Returns null if the user has unrestricted access (no filtering needed).
  */
 export async function getAccessiblePageIds(
-	request: Request,
+	viewer: Viewer,
 ): Promise<Set<string> | null> {
-	const userId = request.headers.get("x-user-id");
-	const authorization = request.headers.get("authorization");
+	const userId = viewer.user?.id;
 
-	if (!userId || !authorization) {
+	if (!userId) {
 		return new Set();
 	}
 
 	// Escape hatch: service-level guidebook:admin sees everything
-	const servicePerms = getServicePerms(request);
+	const servicePerms = viewer.permissions;
 	if (servicePerms.includes("guidebook:admin")) {
 		return null;
 	}
 
 	const hasServiceRead = servicePerms.includes("guidebook:pages:read");
 
-	const userDepts = await getUserDepartmentIds(authorization, userId);
+	const userDepts = new Set(viewer.orgRoles.map((r) => r.orgId));
 
 	// Get all pages that have explicit permissions
 	const restrictedPages = await db

@@ -1,8 +1,7 @@
 import { createHandler, httpError } from "@convstack/service-sdk/handlers";
+import { lanyardFetch } from "@convstack/service-sdk/lanyard";
 import { createFileRoute } from "@tanstack/react-router";
 import { checkPageAccess } from "~/lib/page-permissions";
-
-const LANYARD_URL = process.env.LANYARD_URL || "http://localhost:3000";
 
 export const Route = createFileRoute("/api/pages/$slug/permissions/new")({
 	server: {
@@ -17,31 +16,33 @@ export const Route = createFileRoute("/api/pages/$slug/permissions/new")({
 				handler: async (ctx) => {
 					const slug = (ctx.input as { slug: string }).slug;
 
-					const access = await checkPageAccess(ctx.request, slug);
+					const access = await checkPageAccess(ctx, slug);
 					if (!access.canAdmin) {
 						throw httpError.forbidden("Admin access to this page is required");
 					}
 
-					// Fetch all departments from Lanyard
-					const authorization = ctx.request.headers.get("authorization");
-					let departments: Array<{ id: string; name: string }> = [];
-					if (authorization) {
-						try {
-							const response = await fetch(`${LANYARD_URL}/api/departments`, {
-								headers: { Authorization: authorization },
-							});
-							if (response.ok) {
-								const data = await response.json();
-								departments = (data.rows ?? []).map(
-									(r: { id: string; name: string }) => ({
-										id: r.id,
-										name: r.name,
-									}),
-								);
-							}
-						} catch {
-							// best effort
+					// lanyard lists the departments that aren't private; the admin's
+					// own memberships add any private ones they belong to
+					const departments = new Map(
+						ctx.orgRoles.map((r) => [r.orgId, r.name ?? r.slug]),
+					);
+					try {
+						const response = await lanyardFetch("/api/services/departments");
+						if (response.ok) {
+							const data = (await response.json()) as {
+								rows?: Array<{ id: string; name: string }>;
+							};
+							for (const d of data.rows ?? []) departments.set(d.id, d.name);
+						} else {
+							console.warn(
+								`lanyard /api/services/departments answered ${response.status}`,
+							);
 						}
+					} catch (err) {
+						console.warn(
+							"lanyard /api/services/departments failed:",
+							err instanceof Error ? err.message : err,
+						);
 					}
 
 					return {
@@ -51,10 +52,9 @@ export const Route = createFileRoute("/api/pages/$slug/permissions/new")({
 								label: "Department",
 								type: "select",
 								required: true,
-								options: departments.map((d) => ({
-									label: d.name,
-									value: d.id,
-								})),
+								options: [...departments]
+									.map(([value, label]) => ({ label, value }))
+									.sort((a, b) => a.label.localeCompare(b.label)),
 								value: "",
 							},
 							{

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { requirePermission } from "~/lib/auth";
+import { requirePermission, requireUser } from "~/lib/auth";
 import { checkPageAccess } from "~/lib/page-permissions";
 import { isS3Configured, uploadFile } from "~/lib/s3";
 
@@ -37,8 +37,27 @@ export const Route = createFileRoute("/api/upload/image")({
 				const pageSlug = reqUrl.searchParams.get("pageSlug");
 
 				if (pageSlug) {
-					const access = await checkPageAccess(request, pageSlug);
-					if (!access.canWrite) {
+					const user = await requireUser(request);
+					if (user instanceof Response) return user;
+					const { db } = await import("~/db");
+					const { wikiPage } = await import("~/db/schema");
+					const { eq } = await import("drizzle-orm");
+					const [page] = await db
+						.select({ id: wikiPage.id })
+						.from(wikiPage)
+						.where(eq(wikiPage.slug, pageSlug))
+						.limit(1);
+					const access = await checkPageAccess(
+						{
+							user,
+							permissions: user.permissions,
+							orgRoles: user.orgRoles,
+						},
+						pageSlug,
+					);
+					// a slug with no page would otherwise fall back to the service
+					// permission and tell a restricted page apart from a missing one
+					if (!page || !access.canWrite) {
 						return new Response(
 							JSON.stringify({
 								error: "Write access to this page is required",
@@ -50,7 +69,10 @@ export const Route = createFileRoute("/api/upload/image")({
 						);
 					}
 				} else {
-					const permErr = requirePermission(request, "guidebook:pages:write");
+					const permErr = await requirePermission(
+						request,
+						"guidebook:pages:write",
+					);
 					if (permErr) return permErr;
 				}
 
@@ -61,8 +83,13 @@ export const Route = createFileRoute("/api/upload/image")({
 					);
 				}
 
-				const formData = await request.formData();
-				const file = formData.get("file");
+				// a request that isn't a form upload at all has no file either
+				let file: FormDataEntryValue | null = null;
+				try {
+					file = (await request.formData()).get("file");
+				} catch {
+					file = null;
+				}
 
 				if (!file || !(file instanceof File)) {
 					return new Response(JSON.stringify({ error: "No file provided" }), {

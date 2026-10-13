@@ -576,21 +576,6 @@
               }
             }
           },
-          "403": {
-            "description": "Department access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
           "404": {
             "description": "Page not found",
             "content": {

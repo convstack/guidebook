@@ -4,5 +4,5 @@ export {
 	type RequestUser,
 	requireAnyPermission,
 	requirePermission,
-	requireServiceOrPermission,
+	requireUser,
 } from "@convstack/service-sdk/auth";

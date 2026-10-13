@@ -1,5 +1,6 @@
 import { createHandler, httpError } from "@convstack/service-sdk/handlers";
 import { createFileRoute } from "@tanstack/react-router";
+import { checkPageAccess } from "~/lib/page-permissions";
 import { resolveUserNames } from "~/lib/users";
 
 export const Route = createFileRoute("/api/pages/$slug/history")({
@@ -30,6 +31,9 @@ export const Route = createFileRoute("/api/pages/$slug/history")({
 						.limit(1);
 
 					if (!page) throw httpError.notFound("Page not found");
+
+					const access = await checkPageAccess(ctx, slug);
+					if (!access.canRead) throw httpError.notFound("Page not found");
 
 					const revisions = await db
 						.select({

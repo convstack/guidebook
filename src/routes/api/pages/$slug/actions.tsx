@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/pages/$slug/actions")({
 			GET: createHandler({
 				handler: async (ctx) => {
 					const slug = ctx.input.slug as string;
-					const access = await checkPageAccess(ctx.request, slug);
+					const access = await checkPageAccess(ctx, slug);
 
 					const actions: Array<{
 						label: string;

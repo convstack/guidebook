@@ -10,6 +10,7 @@ export const Route = createFileRoute("/api/health")({
 			 *   status: string
 			 */
 			GET: createHandler({
+				skipAuth: true,
 				handler: async () => ({ status: "ok" }),
 			}),
 		},

@@ -3,9 +3,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { nanoid } from "nanoid";
 import { db } from "~/db";
 import { wikiPage, wikiRevision } from "~/db/schema";
-import { checkPageAccess } from "~/lib/page-permissions";
+import { checkPageAccess, getAccessiblePageIds } from "~/lib/page-permissions";
 import { resolveUserName } from "~/lib/users";
-import { resolveWikiLinks } from "~/lib/wiki-links";
+import { renameWikiLinks, resolveWikiLinks } from "~/lib/wiki-links";
 import { ensureMainPage } from "~/server/services/init";
 
 /** Walk the parent chain to produce breadcrumbs back to the root. Bounded by a visited set. */
@@ -61,7 +61,6 @@ export const Route = createFileRoute("/api/pages/$slug")({
 			 *   metadata: object
 			 *   topBar: object
 			 * error: 404 Page not found
-			 * error: 403 Department access denied
 			 */
 			GET: createHandler({
 				db,
@@ -83,14 +82,15 @@ export const Route = createFileRoute("/api/pages/$slug")({
 					if (!page) throw httpError.notFound("Page not found");
 
 					// Check page-level permissions (with parent inheritance)
-					const access = await checkPageAccess(ctx.request, slug);
-					if (!access.canRead) {
-						throw httpError.forbidden("You do not have access to this page");
-					}
+					const access = await checkPageAccess(ctx, slug);
+					if (!access.canRead) throw httpError.notFound("Page not found");
 
 					const resolvedContent = await resolveWikiLinks(
 						page.content,
 						"guidebook",
+						page.content.includes("[[")
+							? await getAccessiblePageIds(ctx)
+							: null,
 					);
 
 					const canEdit = access.canWrite;
@@ -165,7 +165,7 @@ export const Route = createFileRoute("/api/pages/$slug")({
 				handler: async (ctx) => {
 					if (!ctx.user) throw httpError.unauthorized();
 
-					const { eq, like, sql } = await import("drizzle-orm");
+					const { eq, ilike } = await import("drizzle-orm");
 					const { slug, title, content, editSummary } = ctx.input as {
 						slug: string;
 						title?: string;
@@ -181,7 +181,8 @@ export const Route = createFileRoute("/api/pages/$slug")({
 
 					if (!page) throw httpError.notFound("Page not found");
 
-					const access = await checkPageAccess(ctx.request, slug);
+					const access = await checkPageAccess(ctx, slug);
+					if (!access.canRead) throw httpError.notFound("Page not found");
 					if (!access.canWrite) {
 						throw httpError.forbidden(
 							"You do not have write access to this page",
@@ -213,45 +214,69 @@ export const Route = createFileRoute("/api/pages/$slug")({
 						})
 						.where(eq(wikiPage.id, page.id));
 
-					// If title changed, update wiki links in all other pages
+					// If title changed, update wiki links in the pages the renamer can edit
 					if (newTitle !== oldTitle) {
-						const oldLinkPattern = `[[${oldTitle}]]`;
-						const newLinkPattern = `[[${newTitle}]]`;
-
-						// Find all pages that contain the old wiki link
-						const affectedPages = await db
-							.select({ id: wikiPage.id, content: wikiPage.content })
-							.from(wikiPage)
-							.where(like(wikiPage.content, `%${oldLinkPattern}%`));
-
-						for (const affectedPage of affectedPages) {
-							const updatedContent = affectedPage.content
-								.split(oldLinkPattern)
-								.join(newLinkPattern);
+						const userId = ctx.user.id;
+						const summary = `Link updated after "${oldTitle}" was renamed`;
+						const columns = {
+							id: wikiPage.id,
+							slug: wikiPage.slug,
+							title: wikiPage.title,
+							content: wikiPage.content,
+						};
+						// restricted pages the renamer can't edit keep the old title
+						const rewrite = async (
+							affected: {
+								id: string;
+								slug: string;
+								title: string;
+								content: string;
+							},
+							updatedContent: string,
+						) => {
+							const reach = await checkPageAccess(ctx, affected.slug);
+							if (!reach.canWrite) return;
+							if (affected.id !== page.id) {
+								await db.insert(wikiRevision).values({
+									id: nanoid(),
+									pageId: affected.id,
+									title: affected.title,
+									content: affected.content,
+									editedBy: userId,
+									editSummary: summary,
+									createdAt: new Date(),
+								});
+							}
 							await db
 								.update(wikiPage)
-								.set({ content: updatedContent, updatedAt: new Date() })
-								.where(eq(wikiPage.id, affectedPage.id));
-						}
+								.set({
+									content: updatedContent,
+									updatedBy: userId,
+									updatedAt: new Date(),
+								})
+								.where(eq(wikiPage.id, affected.id));
+						};
 
-						// Also handle aliased links: [[Old Title|Display Text]]
-						const affectedAliased = await db
-							.select({ id: wikiPage.id, content: wikiPage.content })
+						// any page mentioning the title; the link parser decides which
+						// of them really link to it
+						const mentioning = await db
+							.select(columns)
 							.from(wikiPage)
-							.where(sql`${wikiPage.content} LIKE ${`%[[${oldTitle}|%`}`);
-
-						for (const affectedPage of affectedAliased) {
-							const updatedContent = affectedPage.content.replace(
-								new RegExp(
-									`\\[\\[${oldTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\|`,
-									"g",
+							.where(
+								ilike(
+									wikiPage.content,
+									`%${oldTitle.replace(/[\\%_]/g, "\\$&")}%`,
 								),
-								`[[${newTitle}|`,
 							);
-							await db
-								.update(wikiPage)
-								.set({ content: updatedContent, updatedAt: new Date() })
-								.where(eq(wikiPage.id, affectedPage.id));
+
+						for (const affectedPage of mentioning) {
+							const updatedContent = renameWikiLinks(
+								affectedPage.content,
+								oldTitle,
+								newTitle,
+							);
+							if (updatedContent === affectedPage.content) continue;
+							await rewrite(affectedPage, updatedContent);
 						}
 					}
 
@@ -274,7 +299,7 @@ export const Route = createFileRoute("/api/pages/$slug")({
 				handler: async (ctx) => {
 					const { slug } = ctx.input as { slug: string };
 
-					const access = await checkPageAccess(ctx.request, slug);
+					const access = await checkPageAccess(ctx, slug);
 					if (!access.canAdmin) {
 						throw httpError.forbidden("Admin access required to delete");
 					}

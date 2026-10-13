@@ -22,7 +22,7 @@ export const Route = createFileRoute("/api/sidebar-tree")({
 					const { asc } = await import("drizzle-orm");
 
 					// Get the set of page IDs this user can access (null = no filtering needed)
-					const accessibleIds = await getAccessiblePageIds(ctx.request);
+					const accessibleIds = await getAccessiblePageIds(ctx);
 
 					const pages = await db
 						.select({

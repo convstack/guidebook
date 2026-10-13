@@ -25,7 +25,7 @@ export const Route = createFileRoute("/api/pages/$slug/permissions")({
 					const { eq } = await import("drizzle-orm");
 					const slug = (ctx.input as { slug: string }).slug;
 
-					const access = await checkPageAccess(ctx.request, slug);
+					const access = await checkPageAccess(ctx, slug);
 					if (!access.canAdmin) {
 						throw httpError.forbidden("Admin access to this page is required");
 					}
@@ -108,7 +108,7 @@ export const Route = createFileRoute("/api/pages/$slug/permissions")({
 						access?: string;
 					};
 
-					const access = await checkPageAccess(ctx.request, slug);
+					const access = await checkPageAccess(ctx, slug);
 					if (!access.canAdmin) {
 						throw httpError.forbidden("Admin access to this page is required");
 					}
